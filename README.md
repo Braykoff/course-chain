@@ -29,8 +29,27 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The site is built as a fully static export and published to GitHub Pages at
+**https://raykoff.org/course-chain/**.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `.github/workflows/deploy.yml` runs on every push to `main`: it installs
+  dependencies, runs `npm run build` (`output: "export"` writes `./out`), adds a
+  `.nojekyll` marker, and deploys the `out/` directory with `actions/deploy-pages`.
+- `next.config.ts` sets `basePath: "/course-chain"` so all routes and `_next`
+  assets resolve under the sub-path. It's the single source of truth, re-exported
+  as `NEXT_PUBLIC_BASE_PATH` (via the `env` config key) for the few places Next
+  doesn't rewrite automatically — notably `next/image` `src` values for files in
+  `public/`.
+- One-time repo setup: **Settings → Pages → Build and deployment → Source =
+  "GitHub Actions"**. The `raykoff.org` custom domain is configured on the user
+  Pages site, not this repo, so no `CNAME` file is needed here.
+
+To preview the production build locally:
+
+```bash
+npm run build
+npx serve out -l 3000
+# then open http://localhost:3000/course-chain/
+```
