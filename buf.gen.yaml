@@ -1,0 +1,10 @@
+version: v2
+clean: true
+plugins:
+  # Generates plain TypeScript from proto/*.proto into src/lib/gen/.
+  # Re-run with `npm run gen:proto` after editing any .proto file.
+  - local: protoc-gen-es
+    out: src/lib/gen
+    opt:
+      - target=ts
+      - json_types=true

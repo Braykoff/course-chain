@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated from proto/ by `npm run gen:proto`.
+    "src/lib/gen/**",
   ]),
 ]);
 

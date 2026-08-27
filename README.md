@@ -20,6 +20,27 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Project data format
+
+Course-chain projects are stored as [Protobuf](https://protobuf.dev). The schema
+lives in `proto/coursechain/v1/course_chain.proto`; `CourseChainProject` is the
+top-level message written to and read from files and IndexedDB.
+
+- `npm run gen:proto` regenerates the TypeScript bindings into `src/lib/gen/`
+  (via [`buf`](https://buf.build) + `protoc-gen-es`). The generated output is
+  committed, so `npm run build` and CI don't need `buf`. **Re-run it after
+  editing any `.proto`** and commit the result.
+- `npm run lint:proto` runs `buf lint`.
+- `src/lib/project/` is the library the app imports (`@/lib/project`): the
+  generated types, `serializeProject` / `deserializeProject`, and
+  `validateProject`. Both serialize and deserialize run `validateProject`, which
+  checks the schema version, term ordering, term-number bounds, prereq
+  references, and prereq-graph acyclicity — so an invalid project is never
+  persisted or handed to the UI.
+- `npm run tests` (or `npm test`) runs the Vitest suite in `tests/`:
+  serialize/deserialize round trips plus every validation failure path.
+  `npm run test:watch` for watch mode.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

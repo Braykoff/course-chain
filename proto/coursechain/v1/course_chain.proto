@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package coursechain.v1;
+
+// A planning term, e.g. "Fall 2026". Terms are defined once when a project is
+// created: an explicit, fixed, ordered list that is never added to, removed
+// from, or reordered. Because of that, Course.term_number can safely be a
+// positional index into CourseChainProject.terms.
+message Term {
+  // Term start as a Unix epoch day count (whole days since 1970-01-01 UTC),
+  // never negative.
+  uint32 start = 1;
+
+  // Term end, same units as `start` (Unix epoch days, never negative).
+  uint32 end = 2;
+
+  // Human-readable label, e.g. "Fall 2026".
+  string name = 3;
+
+  // When true, this term's contents are filled in automatically rather than
+  // hand-curated.
+  bool autopopulate = 4;
+}
+
+// A single course placed in the plan.
+message Course {
+  // Identifier, unique within a project. Small non-negative count.
+  uint32 id = 1;
+
+  // Course name / code, e.g. "EECS 66".
+  string name = 2;
+
+  // Credit/unit value. Small non-negative count.
+  uint32 unit_count = 3;
+
+  // Ids of courses that must be completed first; each entry is a Course.id
+  // that exists elsewhere in the same project. validateProject() also requires
+  // the overall prereq graph to be acyclic.
+  repeated uint32 prereqs = 4;
+
+  // Index of the owning term in CourseChainProject.terms. validateProject()
+  // requires 0 <= term_number < terms.length.
+  uint32 term_number = 5;
+}
+
+// Top-level document. This is the message serialized to and parsed from files
+// on disk and entries in IndexedDB.
+message CourseChainProject {
+  // Schema version of this document. Must equal the reader build's
+  // CURRENT_SCHEMA_VERSION or deserialize fails.
+  uint32 version_number = 1;
+
+  // All courses in the project.
+  repeated Course courses = 2;
+
+  // All terms in the project, in display order. Fixed at project creation;
+  // must contain at least one term.
+  repeated Term terms = 3;
+
+  // Project name.
+  string name = 4;
+}
