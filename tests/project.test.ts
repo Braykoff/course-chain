@@ -17,17 +17,35 @@ function makeValidProject(): CourseChainProject {
   return create(CourseChainProjectSchema, {
     versionNumber: CURRENT_SCHEMA_VERSION,
     name: "Four-Year Plan",
+    tracks: [
+      { id: 10, name: "Theory" },
+      { id: 11, name: "Systems" },
+    ],
     terms: [
       { start: 19_723, end: 19_843, name: "Fall 2024", autopopulate: false },
       { start: 19_844, end: 19_960, name: "Spring 2025", autopopulate: true },
       // Shares a boundary with the previous term (end === next start), allowed.
       { start: 19_960, end: 20_081, name: "Fall 2025", autopopulate: false },
     ],
+    // Every non-id/name field carries a non-default value on at least one course
+    // so the round-trip tests actually exercise it.
     courses: [
-      { id: 1, name: "CS 61A", unitCount: 4, prereqs: [], termNumber: 0 },
-      { id: 2, name: "CS 61B", unitCount: 4, prereqs: [1], termNumber: 1 },
-      { id: 3, name: "CS 70", unitCount: 4, prereqs: [1], termNumber: 1 },
-      { id: 4, name: "CS 170", unitCount: 4, prereqs: [2, 3], termNumber: 2 },
+      {
+        id: 1, name: "CS 61A", unitCount: 4, prereqs: [], termNumber: 0,
+        concurrentPrereq: [], implicit: false, notes: "", tracks: [],
+      },
+      {
+        id: 2, name: "CS 61B", unitCount: 4, prereqs: [1], termNumber: 1,
+        concurrentPrereq: [false], implicit: false, notes: "heavy workload", tracks: [11],
+      },
+      {
+        id: 3, name: "CS 70", unitCount: 4, prereqs: [1], termNumber: 1,
+        concurrentPrereq: [true], implicit: false, notes: "", tracks: [10],
+      },
+      {
+        id: 4, name: "CS 170", unitCount: 4, prereqs: [2, 3], termNumber: 2,
+        concurrentPrereq: [false, true], implicit: true, notes: "capstone", tracks: [10, 11],
+      },
     ],
   });
 }
@@ -45,6 +63,42 @@ describe("serialize / deserialize round trip", () => {
     const restored = deserializeProject(serializeProject(original));
 
     expect(restored).toEqual(original);
+  });
+
+  it("restores every field on every message type", () => {
+    const restored = deserializeProject(serializeProject(makeValidProject()));
+
+    // --- CourseChainProject ---
+    expect(restored.versionNumber).toBe(CURRENT_SCHEMA_VERSION);
+    expect(restored.name).toBe("Four-Year Plan");
+    expect(restored.terms).toHaveLength(3);
+    expect(restored.courses).toHaveLength(4);
+    expect(restored.tracks).toHaveLength(2);
+
+    // --- Track (id, name) ---
+    expect(restored.tracks[0]).toMatchObject({ id: 10, name: "Theory" });
+    expect(restored.tracks[1]).toMatchObject({ id: 11, name: "Systems" });
+
+    // --- Term (start, end, name, autopopulate) ---
+    expect(restored.terms[1]).toMatchObject({
+      start: 19_844,
+      end: 19_960,
+      name: "Spring 2025",
+      autopopulate: true,
+    });
+
+    // --- Course: all nine fields, using course 4 which sets a non-default
+    //     value for every one of them ---
+    const course4 = restored.courses[3];
+    expect(course4.id).toBe(4);
+    expect(course4.name).toBe("CS 170");
+    expect(course4.unitCount).toBe(4);
+    expect(course4.prereqs).toEqual([2, 3]);
+    expect(course4.termNumber).toBe(2);
+    expect(course4.concurrentPrereq).toEqual([false, true]);
+    expect(course4.implicit).toBe(true);
+    expect(course4.notes).toBe("capstone");
+    expect(course4.tracks).toEqual([10, 11]);
   });
 
   it("produces a non-empty byte array", () => {
@@ -65,10 +119,15 @@ describe("serialize / deserialize round trip", () => {
     const restored = deserializeProject(serializeProject(original));
 
     expect(restored.name).toBe("");
+    expect(restored.tracks).toEqual([]);
     expect(restored.terms[0].start).toBe(0);
     expect(restored.terms[0].autopopulate).toBe(false);
     expect(restored.courses[0].id).toBe(0);
     expect(restored.courses[0].unitCount).toBe(0);
+    expect(restored.courses[0].concurrentPrereq).toEqual([]);
+    expect(restored.courses[0].implicit).toBe(false);
+    expect(restored.courses[0].notes).toBe("");
+    expect(restored.courses[0].tracks).toEqual([]);
   });
 
   it("round-trips values larger than 255 (no 8-bit ceiling is enforced)", () => {

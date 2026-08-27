@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file coursechain/v1/course_chain.proto.
  */
 export const file_coursechain_v1_course_chain: GenFile = /*@__PURE__*/
-  fileDesc("CiFjb3Vyc2VjaGFpbi92MS9jb3Vyc2VfY2hhaW4ucHJvdG8SDmNvdXJzZWNoYWluLnYxIkYKBFRlcm0SDQoFc3RhcnQYASABKA0SCwoDZW5kGAIgASgNEgwKBG5hbWUYAyABKAkSFAoMYXV0b3BvcHVsYXRlGAQgASgIIlwKBkNvdXJzZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEhIKCnVuaXRfY291bnQYAyABKA0SDwoHcHJlcmVxcxgEIAMoDRITCgt0ZXJtX251bWJlchgFIAEoDSKIAQoSQ291cnNlQ2hhaW5Qcm9qZWN0EhYKDnZlcnNpb25fbnVtYmVyGAEgASgNEicKB2NvdXJzZXMYAiADKAsyFi5jb3Vyc2VjaGFpbi52MS5Db3Vyc2USIwoFdGVybXMYAyADKAsyFC5jb3Vyc2VjaGFpbi52MS5UZXJtEgwKBG5hbWUYBCABKAliBnByb3RvMw");
+  fileDesc("CiFjb3Vyc2VjaGFpbi92MS9jb3Vyc2VfY2hhaW4ucHJvdG8SDmNvdXJzZWNoYWluLnYxIkYKBFRlcm0SDQoFc3RhcnQYASABKA0SCwoDZW5kGAIgASgNEgwKBG5hbWUYAyABKAkSFAoMYXV0b3BvcHVsYXRlGAQgASgIIiEKBVRyYWNrEgoKAmlkGAEgASgNEgwKBG5hbWUYAiABKAkiqAEKBkNvdXJzZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEhIKCnVuaXRfY291bnQYAyABKA0SDwoHcHJlcmVxcxgEIAMoDRITCgt0ZXJtX251bWJlchgFIAEoDRIZChFjb25jdXJyZW50X3ByZXJlcRgGIAMoCBIQCghpbXBsaWNpdBgHIAEoCBINCgVub3RlcxgIIAEoCRIOCgZ0cmFja3MYCSADKA0irwEKEkNvdXJzZUNoYWluUHJvamVjdBIWCg52ZXJzaW9uX251bWJlchgBIAEoDRInCgdjb3Vyc2VzGAIgAygLMhYuY291cnNlY2hhaW4udjEuQ291cnNlEiMKBXRlcm1zGAMgAygLMhQuY291cnNlY2hhaW4udjEuVGVybRIMCgRuYW1lGAQgASgJEiUKBnRyYWNrcxgFIAMoCzIVLmNvdXJzZWNoYWluLnYxLlRyYWNrYgZwcm90bzM");
 
 /**
  * A planning term, e.g. "Fall 2026". Terms are defined once when a project is
@@ -100,6 +100,55 @@ export const TermSchema: GenMessage<Term, {jsonType: TermJson}> = /*@__PURE__*/
   messageDesc(file_coursechain_v1_course_chain, 0);
 
 /**
+ * A named track / concentration a course can count toward, e.g. "Theory".
+ *
+ * @generated from message coursechain.v1.Track
+ */
+export type Track = Message<"coursechain.v1.Track"> & {
+  /**
+   * Identifier, unique within a project. Small non-negative count.
+   *
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+
+  /**
+   * Human-readable track name.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * A named track / concentration a course can count toward, e.g. "Theory".
+ *
+ * @generated from message coursechain.v1.Track
+ */
+export type TrackJson = {
+  /**
+   * Identifier, unique within a project. Small non-negative count.
+   *
+   * @generated from field: uint32 id = 1;
+   */
+  id?: number;
+
+  /**
+   * Human-readable track name.
+   *
+   * @generated from field: string name = 2;
+   */
+  name?: string;
+};
+
+/**
+ * Describes the message coursechain.v1.Track.
+ * Use `create(TrackSchema)` to create a new message.
+ */
+export const TrackSchema: GenMessage<Track, {jsonType: TrackJson}> = /*@__PURE__*/
+  messageDesc(file_coursechain_v1_course_chain, 1);
+
+/**
  * A single course placed in the plan.
  *
  * @generated from message coursechain.v1.Course
@@ -142,6 +191,37 @@ export type Course = Message<"coursechain.v1.Course"> & {
    * @generated from field: uint32 term_number = 5;
    */
   termNumber: number;
+
+  /**
+   * Parallel to `prereqs`: concurrent_prereq[i] is true when prereqs[i] may be
+   * taken in the same term as this course rather than strictly before it.
+   *
+   * @generated from field: repeated bool concurrent_prereq = 6;
+   */
+  concurrentPrereq: boolean[];
+
+  /**
+   * True when this course was added by the app (e.g. an auto-filled prereq)
+   * rather than placed by the user.
+   *
+   * @generated from field: bool implicit = 7;
+   */
+  implicit: boolean;
+
+  /**
+   * Free-form user notes about this course. May be empty.
+   *
+   * @generated from field: string notes = 8;
+   */
+  notes: string;
+
+  /**
+   * Ids of tracks this course counts toward; each entry is a Track.id from
+   * CourseChainProject.tracks.
+   *
+   * @generated from field: repeated uint32 tracks = 9;
+   */
+  tracks: number[];
 };
 
 /**
@@ -187,6 +267,37 @@ export type CourseJson = {
    * @generated from field: uint32 term_number = 5;
    */
   termNumber?: number;
+
+  /**
+   * Parallel to `prereqs`: concurrent_prereq[i] is true when prereqs[i] may be
+   * taken in the same term as this course rather than strictly before it.
+   *
+   * @generated from field: repeated bool concurrent_prereq = 6;
+   */
+  concurrentPrereq?: boolean[];
+
+  /**
+   * True when this course was added by the app (e.g. an auto-filled prereq)
+   * rather than placed by the user.
+   *
+   * @generated from field: bool implicit = 7;
+   */
+  implicit?: boolean;
+
+  /**
+   * Free-form user notes about this course. May be empty.
+   *
+   * @generated from field: string notes = 8;
+   */
+  notes?: string;
+
+  /**
+   * Ids of tracks this course counts toward; each entry is a Track.id from
+   * CourseChainProject.tracks.
+   *
+   * @generated from field: repeated uint32 tracks = 9;
+   */
+  tracks?: number[];
 };
 
 /**
@@ -194,7 +305,7 @@ export type CourseJson = {
  * Use `create(CourseSchema)` to create a new message.
  */
 export const CourseSchema: GenMessage<Course, {jsonType: CourseJson}> = /*@__PURE__*/
-  messageDesc(file_coursechain_v1_course_chain, 1);
+  messageDesc(file_coursechain_v1_course_chain, 2);
 
 /**
  * Top-level document. This is the message serialized to and parsed from files
@@ -232,6 +343,14 @@ export type CourseChainProject = Message<"coursechain.v1.CourseChainProject"> & 
    * @generated from field: string name = 4;
    */
   name: string;
+
+  /**
+   * All tracks defined in the project. Course.tracks entries refer to these
+   * by id.
+   *
+   * @generated from field: repeated coursechain.v1.Track tracks = 5;
+   */
+  tracks: Track[];
 };
 
 /**
@@ -270,6 +389,14 @@ export type CourseChainProjectJson = {
    * @generated from field: string name = 4;
    */
   name?: string;
+
+  /**
+   * All tracks defined in the project. Course.tracks entries refer to these
+   * by id.
+   *
+   * @generated from field: repeated coursechain.v1.Track tracks = 5;
+   */
+  tracks?: TrackJson[];
 };
 
 /**
@@ -277,5 +404,5 @@ export type CourseChainProjectJson = {
  * Use `create(CourseChainProjectSchema)` to create a new message.
  */
 export const CourseChainProjectSchema: GenMessage<CourseChainProject, {jsonType: CourseChainProjectJson}> = /*@__PURE__*/
-  messageDesc(file_coursechain_v1_course_chain, 2);
+  messageDesc(file_coursechain_v1_course_chain, 3);
 

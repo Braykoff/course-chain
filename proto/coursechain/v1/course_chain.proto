@@ -22,6 +22,15 @@ message Term {
   bool autopopulate = 4;
 }
 
+// A named track / concentration a course can count toward, e.g. "Aerospace Engineering Major".
+message Track {
+  // Identifier, unique within a project. Small non-negative count.
+  uint32 id = 1;
+
+  // Human-readable track name.
+  string name = 2;
+}
+
 // A single course placed in the plan.
 message Course {
   // Identifier, unique within a project. Small non-negative count.
@@ -41,6 +50,21 @@ message Course {
   // Index of the owning term in CourseChainProject.terms. validateProject()
   // requires 0 <= term_number < terms.length.
   uint32 term_number = 5;
+
+  // Parallel to `prereqs`: concurrent_prereq[i] is true when prereqs[i] may be
+  // taken in the same term as this course rather than strictly before it.
+  repeated bool concurrent_prereq = 6;
+
+  // True when this course was added by the app (e.g. an auto-filled prereq)
+  // rather than placed by the user.
+  bool implicit = 7;
+
+  // Free-form user notes about this course. May be empty.
+  string notes = 8;
+
+  // Ids of tracks this course counts toward; each entry is a Track.id from
+  // CourseChainProject.tracks.
+  repeated uint32 tracks = 9;
 }
 
 // Top-level document. This is the message serialized to and parsed from files
@@ -59,4 +83,8 @@ message CourseChainProject {
 
   // Project name.
   string name = 4;
+
+  // All tracks defined in the project. Course.tracks entries refer to these
+  // by id.
+  repeated Track tracks = 5;
 }

@@ -6,12 +6,15 @@ export {
   type CourseChainProject,
   type Course,
   type Term,
+  type Track,
   type CourseChainProjectJson,
   type CourseJson,
   type TermJson,
+  type TrackJson,
   CourseChainProjectSchema,
   CourseSchema,
   TermSchema,
+  TrackSchema,
 } from "../gen/coursechain/v1/course_chain_pb";
 
 /**
