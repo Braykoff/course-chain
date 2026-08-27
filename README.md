@@ -34,12 +34,16 @@ top-level message written to and read from files and IndexedDB.
 - `src/lib/project/` is the library the app imports (`@/lib/project`): the
   generated types, `serializeProject` / `deserializeProject`, and
   `validateProject`. Both serialize and deserialize run `validateProject`, which
-  checks the schema version, term ordering, term-number bounds, prereq
-  references, and prereq-graph acyclicity — so an invalid project is never
-  persisted or handed to the UI.
+  checks the schema version, name lengths (project/track ≤ 100, term ≤ 40),
+  non-blank/unique/1–100 term names, term ordering, ≤ 100 unique non-blank track
+  names, term-number bounds, prereq references, and prereq-graph acyclicity — so
+  an invalid project is never persisted or handed to the UI.
+- `src/lib/onboarding/` backs the "New course-chain Project" dialog: the form
+  draft model, `validateDraft` (the same rules, phrased for the form),
+  `draftToProject`, and `buildTemplateTerms` for the "Template" dropdown.
 - `npm run tests` (or `npm test`) runs the Vitest suite in `tests/`:
-  serialize/deserialize round trips plus every validation failure path.
-  `npm run test:watch` for watch mode.
+  serialize/deserialize round trips, every validation failure path, and the
+  onboarding draft/template logic. `npm run test:watch` for watch mode.
 
 ## Learn More
 

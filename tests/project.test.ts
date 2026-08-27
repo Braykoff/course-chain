@@ -6,9 +6,15 @@ import {
   CourseSchema,
   CURRENT_SCHEMA_VERSION,
   deserializeProject,
+  MAX_PROJECT_NAME_LENGTH,
+  MAX_TERM_NAME_LENGTH,
+  MAX_TERMS,
+  MAX_TRACK_NAME_LENGTH,
+  MAX_TRACKS,
   ProjectValidationError,
   serializeProject,
   TermSchema,
+  TrackSchema,
   validateProject,
 } from "@/lib/project";
 
@@ -55,6 +61,15 @@ const course = (id: number, prereqs: number[]) =>
 
 const term = (start: number, end: number, name: string) =>
   create(TermSchema, { start, end, name, autopopulate: false });
+
+// `count` ordered, uniquely named terms: term i spans days [10i, 10i + 5].
+const manyTerms = (count: number) =>
+  Array.from({ length: count }, (_, i) =>
+    create(TermSchema, { start: i * 10, end: i * 10 + 5, name: `T${i}`, autopopulate: false }),
+  );
+
+const manyTracks = (count: number) =>
+  Array.from({ length: count }, (_, i) => create(TrackSchema, { id: i, name: `Track ${i}` }));
 
 describe("serialize / deserialize round trip", () => {
   it("restores every field of a valid project", () => {
@@ -109,16 +124,17 @@ describe("serialize / deserialize round trip", () => {
   });
 
   it("preserves zero / default values (proto3 omits them on the wire)", () => {
+    // Names must be non-blank to pass validation; everything else is a zero value.
     const original = create(CourseChainProjectSchema, {
       versionNumber: CURRENT_SCHEMA_VERSION,
-      name: "",
-      terms: [{ start: 0, end: 1, name: "", autopopulate: false }],
+      name: "P",
+      terms: [{ start: 0, end: 1, name: "T", autopopulate: false }],
       courses: [{ id: 0, name: "", unitCount: 0, prereqs: [], termNumber: 0 }],
     });
 
     const restored = deserializeProject(serializeProject(original));
 
-    expect(restored.name).toBe("");
+    expect(restored.name).toBe("P");
     expect(restored.tracks).toEqual([]);
     expect(restored.terms[0].start).toBe(0);
     expect(restored.terms[0].autopopulate).toBe(false);
@@ -177,6 +193,36 @@ describe("validateProject accepts", () => {
 
     expect(() => validateProject(project)).not.toThrow();
   });
+
+  it(`exactly ${MAX_TERMS} terms`, () => {
+    const project = makeValidProject();
+    project.terms = manyTerms(MAX_TERMS);
+
+    expect(() => validateProject(project)).not.toThrow();
+  });
+
+  it(`exactly ${MAX_TRACKS} tracks`, () => {
+    const project = makeValidProject();
+    project.tracks = manyTracks(MAX_TRACKS);
+
+    expect(() => validateProject(project)).not.toThrow();
+  });
+
+  it("zero tracks", () => {
+    const project = makeValidProject();
+    project.tracks = [];
+
+    expect(() => validateProject(project)).not.toThrow();
+  });
+
+  it("names exactly at their maximum length", () => {
+    const project = makeValidProject();
+    project.name = "P".repeat(MAX_PROJECT_NAME_LENGTH);
+    project.terms[0].name = "T".repeat(MAX_TERM_NAME_LENGTH);
+    project.tracks[0].name = "K".repeat(MAX_TRACK_NAME_LENGTH);
+
+    expect(() => validateProject(project)).not.toThrow();
+  });
 });
 
 interface RejectionCase {
@@ -201,11 +247,81 @@ const rejectionCases: RejectionCase[] = [
     message: /schema version mismatch/,
   },
   {
+    name: "a blank project name",
+    mutate: (p) => {
+      p.name = "   ";
+    },
+    message: /project name must not be blank/,
+  },
+  {
+    name: `a project name longer than ${MAX_PROJECT_NAME_LENGTH} characters`,
+    mutate: (p) => {
+      p.name = "x".repeat(MAX_PROJECT_NAME_LENGTH + 1);
+    },
+    message: /project name must be at most 100 characters/,
+  },
+  {
     name: "no terms at all",
     mutate: (p) => {
       p.terms = [];
     },
     message: /at least one term/,
+  },
+  {
+    name: `more than ${MAX_TERMS} terms`,
+    mutate: (p) => {
+      p.terms = manyTerms(MAX_TERMS + 1);
+    },
+    message: /the maximum is 100/,
+  },
+  {
+    name: "a blank term name",
+    mutate: (p) => {
+      p.terms[1].name = "  ";
+    },
+    message: /term 1: name must not be blank/,
+  },
+  {
+    name: `a term name longer than ${MAX_TERM_NAME_LENGTH} characters`,
+    mutate: (p) => {
+      p.terms[1].name = "x".repeat(MAX_TERM_NAME_LENGTH + 1);
+    },
+    message: /term 1: name must be at most 40 characters/,
+  },
+  {
+    name: "duplicate term names",
+    mutate: (p) => {
+      p.terms[2].name = p.terms[0].name;
+    },
+    message: /duplicate term name "Fall 2024"/,
+  },
+  {
+    name: `more than ${MAX_TRACKS} tracks`,
+    mutate: (p) => {
+      p.tracks = manyTracks(MAX_TRACKS + 1);
+    },
+    message: /the maximum is 100/,
+  },
+  {
+    name: "a blank track name",
+    mutate: (p) => {
+      p.tracks[0].name = " ";
+    },
+    message: /track 0: name must not be blank/,
+  },
+  {
+    name: `a track name longer than ${MAX_TRACK_NAME_LENGTH} characters`,
+    mutate: (p) => {
+      p.tracks[0].name = "x".repeat(MAX_TRACK_NAME_LENGTH + 1);
+    },
+    message: /track 0: name must be at most 100 characters/,
+  },
+  {
+    name: "duplicate track names",
+    mutate: (p) => {
+      p.tracks[1].name = p.tracks[0].name;
+    },
+    message: /duplicate track name "Theory"/,
   },
   {
     name: "a term whose start equals its end",

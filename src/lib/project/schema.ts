@@ -23,3 +23,18 @@ export {
  * in a way that needs a migration.
  */
 export const CURRENT_SCHEMA_VERSION = 1;
+
+/** Largest number of terms a project may contain. */
+export const MAX_TERMS = 100;
+
+/** Largest number of tracks a project may contain. */
+export const MAX_TRACKS = 100;
+
+/** Longest allowed project name, in characters (trimmed). */
+export const MAX_PROJECT_NAME_LENGTH = 100;
+
+/** Longest allowed term name, in characters (trimmed). */
+export const MAX_TERM_NAME_LENGTH = 40;
+
+/** Longest allowed track name, in characters (trimmed). */
+export const MAX_TRACK_NAME_LENGTH = 100;
