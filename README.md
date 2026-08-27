@@ -38,10 +38,10 @@ The site is built as a fully static export and published to GitHub Pages at
   dependencies, runs `npm run build` (`output: "export"` writes `./out`), adds a
   `.nojekyll` marker, and deploys the `out/` directory with `actions/deploy-pages`.
 - `next.config.ts` sets `basePath: "/course-chain"` so all routes and `_next`
-  assets resolve under the sub-path. It's the single source of truth, re-exported
-  as `NEXT_PUBLIC_BASE_PATH` (via the `env` config key) for the few places Next
-  doesn't rewrite automatically — notably `next/image` `src` values for files in
-  `public/`.
+  assets resolve under the sub-path. Next rewrites `<Link>` hrefs and its own
+  asset URLs automatically; string references to files in `public/` (e.g.
+  `next/image` `src`) need the prefix applied by hand — re-export `basePath` as
+  `NEXT_PUBLIC_BASE_PATH` via the `env` config key when that comes up.
 - One-time repo setup: **Settings → Pages → Build and deployment → Source =
   "GitHub Actions"**. The `raykoff.org` custom domain is configured on the user
   Pages site, not this repo, so no `CNAME` file is needed here.

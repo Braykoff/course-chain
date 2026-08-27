@@ -2,25 +2,42 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #1a1a1a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+@theme {
+  /* Royal blue — the course-chain accent color (~#4169E1, a nod to Berkeley blue). */
+  --color-royal-50: #eef3fd;
+  --color-royal-100: #d9e3fb;
+  --color-royal-200: #b9ccf7;
+  --color-royal-300: #8dabf1;
+  --color-royal-400: #5b83e8;
+  --color-royal-500: #4169e1;
+  --color-royal-600: #2f4fd0;
+  --color-royal-700: #2740ab;
+  --color-royal-800: #26398a;
+  --color-royal-900: #24356e;
+  --color-royal-950: #1a244a;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+@layer base {
+  /* Tailwind v4's Preflight no longer resets button cursor, and browsers
+     default <button> to `cursor: default`. Restore the clickable cursor. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
 }
