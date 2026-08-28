@@ -54,6 +54,11 @@ function termStatus(startDay: number, endDay: number, todayDay: number): TermSta
 const byCalendarOrder = (a: Course, b: Course): number =>
   a.termNumber - b.termNumber || a.id - b.id;
 
+// Connector colors are set as SVG presentation attributes (not Tailwind
+// classes) so html-to-image picks them up when exporting the PDF.
+const ARROW_COLOR = "#4169e1"; // --color-royal-500
+const ARROW_CONFLICT_COLOR = "#ef4444"; // red-500
+
 interface EditorScreenProps {
   project: CourseChainProject;
 }
@@ -408,7 +413,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
                   markerHeight="7"
                   orient="auto"
                 >
-                  <path d="M0 0 L10 5 L0 10 z" className="fill-royal-500" />
+                  <path d="M0 0 L10 5 L0 10 z" fill={ARROW_COLOR} />
                 </marker>
                 <marker
                   id="cc-prereq-arrowhead-conflict"
@@ -419,7 +424,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
                   markerHeight="7"
                   orient="auto"
                 >
-                  <path d="M0 0 L10 5 L0 10 z" className="fill-red-500" />
+                  <path d="M0 0 L10 5 L0 10 z" fill={ARROW_CONFLICT_COLOR} />
                 </marker>
               </defs>
               {arrows.arrows.map((arrow) => {
@@ -431,12 +436,11 @@ export function EditorScreen({ project }: EditorScreenProps) {
                     key={arrow.key}
                     d={arrow.d}
                     fill="none"
-                    className={`${arrow.conflict ? "stroke-red-500" : "stroke-royal-500"} ${
-                      inChain ? "" : "opacity-20"
-                    }`}
+                    stroke={arrow.conflict ? ARROW_CONFLICT_COLOR : ARROW_COLOR}
                     strokeWidth={2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    opacity={inChain ? 1 : 0.2}
                     markerEnd={
                       arrow.conflict
                         ? "url(#cc-prereq-arrowhead-conflict)"
@@ -500,10 +504,12 @@ export function EditorScreen({ project }: EditorScreenProps) {
                 <div
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => handleDropSlot(index, maxSlot + 1, event)}
-                  className="flex flex-1 flex-col p-3"
+                  className={`flex flex-1 flex-col p-3 ${
+                    rowCount === 0 ? "items-center justify-center" : ""
+                  }`}
                 >
                   {rowCount === 0 ? (
-                    <span className="m-auto select-none text-xs text-gray-300">
+                    <span className="select-none text-xs text-gray-300">
                       No courses yet
                     </span>
                   ) : (
@@ -565,6 +571,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
       {/* Floating track filter — bottom-right; click one to highlight its chain */}
       {project.tracks.length > 0 && (
         <div
+          id="cc-track-panel"
           onClick={(event) => event.stopPropagation()}
           className="absolute bottom-4 right-4 z-20 max-w-[14rem] rounded-lg border border-gray-200 bg-white/95 p-2 shadow-lg backdrop-blur"
         >

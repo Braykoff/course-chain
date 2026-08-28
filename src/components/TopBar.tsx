@@ -66,48 +66,82 @@ export function TopBar() {
     if (!board || columns.length === 0) return;
 
     setSavingPdf(true);
-    // The board is `min-h-full` on screen so its columns fill the viewport even
-    // when nearly empty. Drop that just for the capture so the PDF is the real
-    // content size, not a viewport-tall strip of blank columns.
+    // On screen the board is `min-h-full`, so its columns fill the viewport even
+    // when nearly empty. For the capture, pin it to the real content height: the
+    // PDF then isn't a viewport-tall strip of blank columns, and — because the
+    // html-to-image clone can't re-stretch a board with an explicit height — the
+    // empty columns' centered "No courses yet" labels stay centered.
     const prevMinHeight = board.style.minHeight;
-    board.style.minHeight = "0px";
+    const prevHeight = board.style.height;
     try {
       const [{ toPng }, { jsPDF }] = await Promise.all([
         import("html-to-image"),
         import("jspdf"),
       ]);
 
+      board.style.minHeight = "0px";
       const width = board.scrollWidth;
       // scrollHeight would include the (viewport-tall) arrow overlay, so measure
       // the tallest column instead — every column is stretched to that height.
       const height = Math.max(...columns.map((column) => column.offsetHeight));
+      board.style.height = `${height}px`;
 
-      // The clone html-to-image makes inherits the inline min-height above.
-      const pngPromise = toPng(board, {
+      const dataUrl = await toPng(board, {
         width,
         height,
         pixelRatio: 2,
         backgroundColor: "#ffffff",
       });
-      // Restore the live view; the clone was already snapshotted synchronously.
+
       board.style.minHeight = prevMinHeight;
+      board.style.height = prevHeight;
 
-      const dataUrl = await pngPromise;
+      // Tracks render as a titled strip above the calendar image.
+      const trackNames = project.tracks
+        .map((track) => track.name.trim())
+        .filter(Boolean);
+      const stripHeight = trackNames.length > 0 ? 40 : 0;
+      const pageHeight = stripHeight + height;
 
-      // One page the exact pixel size of the board (px = 1/96in). Orientation
+      // One page the exact pixel width of the calendar (px = 1/96in). Orientation
       // must match the aspect ratio or jsPDF swaps the format and the image
       // stops fitting the page.
       const pdf = new jsPDF({
-        orientation: width >= height ? "landscape" : "portrait",
+        orientation: width >= pageHeight ? "landscape" : "portrait",
         unit: "px",
-        format: [width, height],
+        format: [width, pageHeight],
       });
-      pdf.addImage(dataUrl, "PNG", 0, 0, width, height);
+
+      if (stripHeight > 0) {
+        const baseline = stripHeight / 2 + 4;
+        // Soft background band with a hairline divider along its bottom edge.
+        pdf.setFillColor(246, 247, 249);
+        pdf.rect(0, 0, width, stripHeight, "F");
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(1);
+        pdf.line(0, stripHeight, width, stripHeight);
+        // Accent-coloured label, then the track names, bullet-separated.
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.setTextColor(65, 105, 225);
+        pdf.text("TRACKS", 20, baseline);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(12);
+        pdf.setTextColor(51, 65, 85);
+        pdf.text(
+          trackNames.join("    •    "),
+          20 + pdf.getTextWidth("TRACKS") + 16,
+          baseline,
+        );
+      }
+      pdf.addImage(dataUrl, "PNG", 0, stripHeight, width, height);
+
       pdf.save(`${safeStem(project.name)}.pdf`);
     } catch {
       window.alert("Couldn't create the PDF.");
     } finally {
       board.style.minHeight = prevMinHeight;
+      board.style.height = prevHeight;
       setSavingPdf(false);
     }
   };
