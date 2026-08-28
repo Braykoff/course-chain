@@ -220,13 +220,16 @@ interface PlacementBounds {
 
 /**
  * Pick a term index for a course: after its prereqs (same term when the link is
- * concurrent), before its dependents, otherwise the term nearest today. Clamps
- * into range and reports when clamping was needed.
+ * concurrent), before its dependents, otherwise the term nearest today. Terms
+ * with `autopopulate` off are skipped when a suitable one with it on is
+ * reachable within the allowed window. Clamps into range and reports when
+ * clamping was needed.
  */
 function pickTerm(
-  termCount: number,
+  autopopulate: boolean[],
   bounds: PlacementBounds,
 ): { term: number; forced: boolean } {
+  const termCount = autopopulate.length;
   const lower = bounds.prereqs.length
     ? Math.max(...bounds.prereqs.map((p) => p.term + (p.concurrent ? 0 : 1)))
     : undefined;
@@ -241,6 +244,28 @@ function pickTerm(
 
   const term = Math.min(termCount - 1, Math.max(0, candidate));
   const forced = term !== candidate || (lower !== undefined && upper !== undefined && lower > upper);
+
+  if (autopopulate[term]) return { term, forced };
+
+  // Prefer an autopopulate term. Stay within the window the prereq/dependent
+  // links allow; search toward later terms when the course has prereqs (right
+  // after them), toward earlier terms when the course is itself a prereq, and
+  // outward from the anchor otherwise.
+  const lo = Math.max(0, lower ?? 0);
+  const hi = Math.min(termCount - 1, upper ?? termCount - 1);
+  const inWindow = (t: number) => t >= lo && t <= hi && autopopulate[t];
+
+  if (lower !== undefined) {
+    for (let t = term; t <= hi; t += 1) if (inWindow(t)) return { term: t, forced };
+  } else if (upper !== undefined) {
+    for (let t = term; t >= lo; t -= 1) if (inWindow(t)) return { term: t, forced };
+  } else {
+    for (let d = 1; d < termCount; d += 1) {
+      if (inWindow(term - d)) return { term: term - d, forced };
+      if (inWindow(term + d)) return { term: term + d, forced };
+    }
+  }
+
   return { term, forced };
 }
 
@@ -254,7 +279,7 @@ export function addCourse(
   input: NewCourseInput,
   todayDay: number = todayEpochDay(),
 ): AddCourseResult {
-  const termCount = project.terms.length;
+  const autopopulate = project.terms.map((term) => term.autopopulate);
   const nearest = nearestTermIndex(project, todayDay);
   const warnings: string[] = [];
 
@@ -328,7 +353,7 @@ export function addCourse(
     )
     .map(({ course: c, concurrent }) => ({ term: c.termNumber, concurrent }));
 
-  const placement = pickTerm(termCount, {
+  const placement = pickTerm(autopopulate, {
     prereqs: placedPrereqBounds,
     dependents: [],
     nearest,
@@ -346,7 +371,7 @@ export function addCourse(
     if (!implicit) continue;
     const index = course.prereqs.indexOf(id);
     const concurrent = course.concurrentPrereq[index] ?? false;
-    const implicitPlacement = pickTerm(termCount, {
+    const implicitPlacement = pickTerm(autopopulate, {
       prereqs: [],
       dependents: [{ term: course.termNumber, concurrent }],
       nearest,
@@ -459,7 +484,7 @@ export function updateCourse(
     };
   }
 
-  const termCount = project.terms.length;
+  const autopopulate = project.terms.map((term) => term.autopopulate);
   const nearest = nearestTermIndex(project, todayDay);
   const warnings: string[] = [];
 
@@ -523,7 +548,7 @@ export function updateCourse(
       if (!implicit) continue;
       const index = updated.prereqs.indexOf(id);
       const concurrent = updated.concurrentPrereq[index] ?? false;
-      const placement = pickTerm(termCount, {
+      const placement = pickTerm(autopopulate, {
         prereqs: [],
         dependents: [{ term: updated.termNumber, concurrent }],
         nearest,

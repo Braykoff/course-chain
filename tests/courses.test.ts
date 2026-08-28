@@ -511,3 +511,79 @@ describe("circular prereqs", () => {
     expect(result.warnings.join(" ")).toMatch(/circular/i);
   });
 });
+
+describe("autopopulate-aware placement", () => {
+  const projectWith = (autopop: boolean[]) =>
+    create(CourseChainProjectSchema, {
+      versionNumber: CURRENT_SCHEMA_VERSION,
+      name: "Plan",
+      terms: autopop.map((ap, i) => ({
+        name: `Term ${i}`,
+        start: 20_000 + i * 100,
+        end: 20_000 + i * 100 + 90,
+        autopopulate: ap,
+      })),
+      courses: [],
+      tracks: [],
+    });
+
+  it("puts a link-free course in the nearest autopopulate term", () => {
+    // today is inside term 2, which is off; term 3 is on.
+    const p = projectWith([false, false, false, true, false, false]);
+    const { project } = addCourse(p, input({ name: "A" }), INSIDE_TERM_2);
+    expect(named(project, "A").termNumber).toBe(3);
+  });
+
+  it("skips an off term when placing a course after its prereq", () => {
+    const p = projectWith([false, false, true, false, true, false]);
+    const withP = addCourse(p, input({ name: "P" }), INSIDE_TERM_2).project; // term 2
+    const { project } = addCourse(
+      withP,
+      input({ name: "C", prereqs: [{ name: "P", concurrent: false }] }),
+      INSIDE_TERM_2,
+    );
+    expect(named(project, "P").termNumber).toBe(2);
+    expect(named(project, "C").termNumber).toBe(4); // term 3 skipped
+  });
+
+  it("falls back to an off term when no on term is available in range", () => {
+    const p = projectWith([false, false, true, false]);
+    const withP = addCourse(p, input({ name: "P" }), INSIDE_TERM_2).project; // term 2
+    const { project } = addCourse(
+      withP,
+      input({ name: "C", prereqs: [{ name: "P", concurrent: false }] }),
+      INSIDE_TERM_2,
+    );
+    expect(named(project, "C").termNumber).toBe(3); // only the off term is left
+  });
+
+  it("places an implicit prereq before its dependent on an autopopulate term", () => {
+    const p = projectWith([true, false, false, true, false, false]);
+    const { project } = addCourse(
+      p,
+      input({ name: "C", prereqs: [{ name: "MATH 55", concurrent: false }] }),
+      INSIDE_TERM_2,
+    );
+    expect(named(project, "C").termNumber).toBe(3); // nearest on term from term 2
+    expect(named(project, "MATH 55").termNumber).toBe(0); // before C, skipping off 1 & 2
+  });
+
+  it("updateCourse places a new implicit prereq on an autopopulate term", () => {
+    const p = projectWith([true, false, false, true, true, false]);
+    const withX = addCourse(p, input({ name: "X" }), INSIDE_TERM_2).project; // term 3
+    const { project } = updateCourse(
+      withX,
+      named(withX, "X").id,
+      input({ name: "X", prereqs: [{ name: "NEW", concurrent: false }] }),
+      {},
+      INSIDE_TERM_2,
+    );
+    expect(named(project, "NEW").termNumber).toBe(0);
+  });
+
+  it("still works when no term is autopopulate", () => {
+    const p = projectWith([false, false, false, false, false, false]);
+    const { project } = addCourse(p, input({ name: "A" }), INSIDE_TERM_2);
+    expect(named(project, "A").termNumber).toBe(2); // nearest, unchanged
+  });
+});
