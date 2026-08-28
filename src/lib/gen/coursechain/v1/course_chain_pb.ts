@@ -100,7 +100,7 @@ export const TermSchema: GenMessage<Term, {jsonType: TermJson}> = /*@__PURE__*/
   messageDesc(file_coursechain_v1_course_chain, 0);
 
 /**
- * A named track / concentration a course can count toward, e.g. "Theory".
+ * A named track / concentration a course can count toward, e.g. "Aerospace Engineering Major".
  *
  * @generated from message coursechain.v1.Track
  */
@@ -121,7 +121,7 @@ export type Track = Message<"coursechain.v1.Track"> & {
 };
 
 /**
- * A named track / concentration a course can count toward, e.g. "Theory".
+ * A named track / concentration a course can count toward, e.g. "Aerospace Engineering Major".
  *
  * @generated from message coursechain.v1.Track
  */

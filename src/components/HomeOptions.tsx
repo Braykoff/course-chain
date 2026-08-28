@@ -8,6 +8,8 @@ import {
   faFileCirclePlus,
   faFolderOpen,
 } from "@fortawesome/free-solid-svg-icons";
+import type { CourseChainProject } from "@/lib/project";
+import { draftToProject } from "@/lib/onboarding";
 import { NewProjectDialog } from "./NewProjectDialog";
 
 interface HomeOption {
@@ -17,7 +19,11 @@ interface HomeOption {
   onSelect?: () => void;
 }
 
-export function HomeOptions() {
+interface HomeOptionsProps {
+  onOpenProject: (project: CourseChainProject) => void;
+}
+
+export function HomeOptions({ onOpenProject }: HomeOptionsProps) {
   const [newProjectOpen, setNewProjectOpen] = useState(false);
 
   const options: HomeOption[] = [
@@ -73,7 +79,13 @@ export function HomeOptions() {
       {/* New course-chain Project onboarding — mounted only while open, so it
           always starts from a blank form */}
       {newProjectOpen && (
-        <NewProjectDialog onClose={() => setNewProjectOpen(false)} />
+        <NewProjectDialog
+          onClose={() => setNewProjectOpen(false)}
+          onStart={(draft) => {
+            onOpenProject(draftToProject(draft));
+            setNewProjectOpen(false);
+          }}
+        />
       )}
     </>
   );

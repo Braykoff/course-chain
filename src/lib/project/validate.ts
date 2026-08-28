@@ -43,6 +43,7 @@ function isBlank(value: string): boolean {
  *  - There are no more than {@link MAX_TRACKS} tracks.
  *  - Every track name is non-blank, at most {@link MAX_TRACK_NAME_LENGTH} chars,
  *    and unique (compared trimmed).
+ *  - No two courses share a name (compared trimmed and case-insensitively).
  *  - Every course's `unitCount` is >= 0.
  *  - Every course's `termNumber` is >= 0 and indexes a real term
  *    (`< terms.length`).
@@ -134,10 +135,19 @@ export function validateProject(project: CourseChainProject): void {
     trackNames.add(key);
   }
 
-  // --- Courses: unit/term numbers make sense, prereqs resolve ---
+  // --- Courses: unique names, unit/term numbers make sense, prereqs resolve ---
   const courseIds = new Set(courses.map((course) => course.id));
+  const courseNameKeys = new Set<string>();
   for (const course of courses) {
     const label = courseLabel(course);
+
+    const nameKey = course.name.trim().toLowerCase();
+    if (courseNameKeys.has(nameKey)) {
+      throw new ProjectValidationError(
+        `duplicate course name "${course.name.trim()}" (names are case-insensitive)`,
+      );
+    }
+    courseNameKeys.add(nameKey);
 
     if (course.unitCount < 0) {
       throw new ProjectValidationError(`${label}: unit count must be >= 0`);

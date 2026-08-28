@@ -1,12 +1,12 @@
 "use client";
 
-import { usePathname } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faHouse,
   faDownload,
   faCircleQuestion,
 } from "@fortawesome/free-solid-svg-icons";
+import { useWorkspace } from "./WorkspaceContext";
 
 const iconButton =
   "inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-500 transition-colors " +
@@ -15,19 +15,21 @@ const iconButton =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-royal-500 focus-visible:ring-offset-2";
 
 export function TopBar() {
-  // On the home screen the Home and Download buttons have nothing to do, so
-  // they're disabled there.
-  const isHome = usePathname() === "/";
+  const { project, setProject } = useWorkspace();
+  // With no project open we're already on the launcher, so Home and Download
+  // have nothing to do.
+  const onLauncher = project === null;
 
   return (
     <header className="sticky top-0 z-10 border-b border-gray-200 bg-white">
       <div className="grid grid-cols-3 items-center px-4 py-2">
-        {/* Home — no-op; disabled on the home screen */}
+        {/* Home — returns to the launcher; disabled when already there */}
         <button
           type="button"
           aria-label="Home"
           title="Home"
-          disabled={isHome}
+          disabled={onLauncher}
+          onClick={() => setProject(null)}
           className={`${iconButton} justify-self-start`}
         >
           <FontAwesomeIcon icon={faHouse} className="text-base" />
@@ -40,12 +42,12 @@ export function TopBar() {
 
         {/* Download + Help */}
         <div className="flex items-center gap-1 justify-self-end">
-          {/* Download project — no-op; disabled on the home screen */}
+          {/* Download project — no-op; disabled when no project is open */}
           <button
             type="button"
             aria-label="Download project"
             title="Download project"
-            disabled={isHome}
+            disabled={onLauncher}
             className={iconButton}
           >
             <FontAwesomeIcon icon={faDownload} className="text-base" />

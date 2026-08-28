@@ -345,6 +345,13 @@ const rejectionCases: RejectionCase[] = [
     message: /before the previous term ends/,
   },
   {
+    name: "two courses whose names differ only in case",
+    mutate: (p) => {
+      p.courses[1].name = p.courses[0].name.toLowerCase();
+    },
+    message: /duplicate course name .* case-insensitive/,
+  },
+  {
     name: "a negative unit count",
     mutate: (p) => {
       p.courses[0].unitCount = -1;

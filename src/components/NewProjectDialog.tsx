@@ -24,6 +24,8 @@ import {
 
 interface NewProjectDialogProps {
   onClose: () => void;
+  /** Called with the finished draft when "Start" is clicked and it is valid. */
+  onStart: (draft: NewProjectDraft) => void;
 }
 
 const fieldClass =
@@ -54,7 +56,7 @@ const rowRemoveClass =
   "hover:bg-gray-100 hover:text-red-600 focus-visible:opacity-100 focus-visible:outline-none " +
   "focus-visible:ring-2 focus-visible:ring-royal-500";
 
-export function NewProjectDialog({ onClose }: NewProjectDialogProps) {
+export function NewProjectDialog({ onClose, onStart }: NewProjectDialogProps) {
   // Mounted only while the dialog is open, so useState's lazy initializer gives
   // a fresh blank form every time.
   const [draft, setDraft] = useState<NewProjectDraft>(emptyDraft);
@@ -140,7 +142,7 @@ export function NewProjectDialog({ onClose }: NewProjectDialogProps) {
       setShowErrors(true);
       return;
     }
-    // no-op for now
+    onStart(draft);
   };
 
   const titleInvalid = showErrors && draft.title.trim() === "";

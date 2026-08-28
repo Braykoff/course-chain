@@ -36,8 +36,9 @@ top-level message written to and read from files and IndexedDB.
   `validateProject`. Both serialize and deserialize run `validateProject`, which
   checks the schema version, name lengths (project/track ≤ 100, term ≤ 40),
   non-blank/unique/1–100 term names, term ordering, ≤ 100 unique non-blank track
-  names, term-number bounds, prereq references, and prereq-graph acyclicity — so
-  an invalid project is never persisted or handed to the UI.
+  names, case-insensitively unique course names, term-number bounds, prereq
+  references, and prereq-graph acyclicity — so an invalid project is never
+  persisted or handed to the UI.
 - `src/lib/onboarding/` backs the "New course-chain Project" dialog: the form
   draft model, `validateDraft` (the same rules, phrased for the form),
   `draftToProject`, and `buildTemplateTerms` for the "Template" dropdown.
