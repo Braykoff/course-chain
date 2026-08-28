@@ -3,6 +3,7 @@ import {
   type CourseChainProject,
   CURRENT_SCHEMA_VERSION,
   MAX_PROJECT_NAME_LENGTH,
+  MAX_SLOT,
   MAX_TERM_NAME_LENGTH,
   MAX_TERMS,
   MAX_TRACK_NAME_LENGTH,
@@ -44,6 +45,7 @@ function isBlank(value: string): boolean {
  *  - Every track name is non-blank, at most {@link MAX_TRACK_NAME_LENGTH} chars,
  *    and unique (compared trimmed).
  *  - No two courses share a name (compared trimmed and case-insensitively).
+ *  - Every course's `slots` is 0..{@link MAX_SLOT} and unique within its term.
  *  - Every course's `unitCount` is >= 0.
  *  - Every course's `termNumber` is >= 0 and indexes a real term
  *    (`< terms.length`).
@@ -135,9 +137,10 @@ export function validateProject(project: CourseChainProject): void {
     trackNames.add(key);
   }
 
-  // --- Courses: unique names, unit/term numbers make sense, prereqs resolve ---
+  // --- Courses: unique names, unit/term numbers, slots, prereqs resolve ---
   const courseIds = new Set(courses.map((course) => course.id));
   const courseNameKeys = new Set<string>();
+  const slotsByTerm = new Map<number, Set<number>>();
   for (const course of courses) {
     const label = courseLabel(course);
 
@@ -158,6 +161,23 @@ export function validateProject(project: CourseChainProject): void {
           `(project has ${terms.length})`,
       );
     }
+    if (course.slots < 0 || course.slots > MAX_SLOT) {
+      throw new ProjectValidationError(
+        `${label}: slot ${course.slots} is out of range (0-${MAX_SLOT})`,
+      );
+    }
+    let termSlots = slotsByTerm.get(course.termNumber);
+    if (!termSlots) {
+      termSlots = new Set<number>();
+      slotsByTerm.set(course.termNumber, termSlots);
+    }
+    if (termSlots.has(course.slots)) {
+      throw new ProjectValidationError(
+        `${label}: slot ${course.slots} is already taken in term ${course.termNumber}`,
+      );
+    }
+    termSlots.add(course.slots);
+
     for (const prereqId of course.prereqs) {
       if (!courseIds.has(prereqId)) {
         throw new ProjectValidationError(

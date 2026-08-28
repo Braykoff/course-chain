@@ -6,6 +6,8 @@ import type { CourseChainProject } from "@/lib/project";
 export interface PrereqArrow {
   key: string;
   d: string;
+  /** The dependent course is scheduled inconsistently with this prereq link. */
+  conflict: boolean;
 }
 
 interface ArrowLayout {
@@ -134,15 +136,24 @@ export function usePrereqArrows(
         };
       };
 
+      const byId = new Map(project.courses.map((c) => [c.id, c]));
       const arrows: PrereqArrow[] = [];
       for (const course of project.courses) {
         const target = anchorFor(course.id);
         if (!target) continue;
-        for (const prereqId of course.prereqs) {
+        course.prereqs.forEach((prereqId, index) => {
           const source = anchorFor(prereqId);
-          if (!source) continue;
-          arrows.push({ key: `${prereqId}->${course.id}`, d: buildPath(source, target) });
-        }
+          const prereq = byId.get(prereqId);
+          if (!source || !prereq) return;
+          const concurrent = course.concurrentPrereq[index] ?? false;
+          const conflict =
+            prereq.termNumber + (concurrent ? 0 : 1) > course.termNumber;
+          arrows.push({
+            key: `${prereqId}->${course.id}`,
+            d: buildPath(source, target),
+            conflict,
+          });
+        });
       }
 
       // Post-layout measurement: this setState runs before paint, no flicker.

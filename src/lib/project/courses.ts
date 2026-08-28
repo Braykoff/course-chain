@@ -3,6 +3,7 @@ import {
   type Course,
   type CourseChainProject,
   CourseSchema,
+  MAX_SLOT,
 } from "./schema";
 
 const MS_PER_DAY = 86_400_000;
@@ -12,15 +13,13 @@ export interface PrereqInput {
   concurrent: boolean;
 }
 
+/** The editable fields of a course — what the course form produces. */
 export interface NewCourseInput {
   name: string;
   unitCount: number;
   comments: string;
   trackIds: number[];
   prereqs: PrereqInput[];
-  /** Explicit courses come from the Add Course form; implicit ones are created
-   *  automatically for a prereq name that isn't in the project yet. */
-  implicit?: boolean;
 }
 
 export interface AddCourseResult {
@@ -206,7 +205,7 @@ export function addCourse(
     unitCount: input.unitCount,
     prereqs: prereqIds,
     concurrentPrereq: concurrentFlags,
-    implicit: input.implicit ?? false,
+    implicit: false,
     notes: input.comments,
     tracks: input.trackIds,
   });
@@ -254,19 +253,277 @@ export function addCourse(
     }
   }
 
+  // Assign each new course the lowest free slot in its term. If a term is full
+  // (every slot 0..MAX_SLOT taken) the whole add is rejected.
+  const takenSlots = new Map<number, Set<number>>();
+  const slotsOf = (term: number): Set<number> => {
+    let set = takenSlots.get(term);
+    if (!set) {
+      set = new Set();
+      takenSlots.set(term, set);
+    }
+    return set;
+  };
+  for (const c of project.courses) slotsOf(c.termNumber).add(c.slots);
+
+  for (const id of [...newImplicitIds, course.id]) {
+    const c = byId.get(id);
+    if (!c) continue;
+    const used = slotsOf(c.termNumber);
+    let slot = 0;
+    while (used.has(slot)) slot += 1;
+    if (slot > MAX_SLOT) {
+      return {
+        project,
+        warnings: [
+          `${project.terms[c.termNumber].name} is full — it already holds ${MAX_SLOT + 1} courses.`,
+        ],
+      };
+    }
+    c.slots = slot;
+    used.add(slot);
+  }
+
   return { project: { ...project, courses }, warnings };
 }
 
-/** Move a course to a different term (used by drag-and-drop). */
+/** Lowest-free-slot picker for a term, seeded from `existing` courses. */
+function makeSlotAssigner(existing: Course[]): (term: number) => number | null {
+  const taken = new Map<number, Set<number>>();
+  const slotsOf = (term: number): Set<number> => {
+    let set = taken.get(term);
+    if (!set) {
+      set = new Set();
+      taken.set(term, set);
+    }
+    return set;
+  };
+  for (const c of existing) slotsOf(c.termNumber).add(c.slots);
+  return (term: number): number | null => {
+    const set = slotsOf(term);
+    let slot = 0;
+    while (set.has(slot)) slot += 1;
+    if (slot > MAX_SLOT) return null;
+    set.add(slot);
+    return slot;
+  };
+}
+
+/** Drop implicit courses that no course lists as a prereq (repeatedly). */
+function gcStrandedImplicits(courses: Course[]): Course[] {
+  let result = courses;
+  for (;;) {
+    const referenced = new Set(result.flatMap((c) => c.prereqs));
+    const kept = result.filter((c) => !c.implicit || referenced.has(c.id));
+    if (kept.length === result.length) return result;
+    result = kept;
+  }
+}
+
+/**
+ * Save edits to an existing course. Unlike {@link addCourse} this never moves
+ * the course — its term and slot are left alone. New prereq names still spawn
+ * implicit courses; a prereq removed here may leave an implicit course stranded,
+ * in which case it is deleted. Pass `promote` to also clear the implicit flag
+ * (turning an auto-created prereq into a real course).
+ */
+export function updateCourse(
+  project: CourseChainProject,
+  courseId: number,
+  input: NewCourseInput,
+  options: { promote?: boolean } = {},
+  todayDay: number = todayEpochDay(),
+): AddCourseResult {
+  const target = project.courses.find((c) => c.id === courseId);
+  if (!target) return { project, warnings: [] };
+
+  const trimmedName = input.name.trim();
+  const nameKey = trimmedName.toLowerCase();
+  if (nameKey.length === 0) {
+    return { project, warnings: ["Course name must not be blank."] };
+  }
+  if (
+    project.courses.some(
+      (c) => c.id !== courseId && c.name.trim().toLowerCase() === nameKey,
+    )
+  ) {
+    return {
+      project,
+      warnings: [`A course named “${trimmedName}” already exists — not saved.`],
+    };
+  }
+
+  const termCount = project.terms.length;
+  const nearest = nearestTermIndex(project, todayDay);
+  const warnings: string[] = [];
+
+  let courses = [...project.courses];
+  let nextId = courses.reduce((max, c) => Math.max(max, c.id), 0) + 1;
+
+  const prereqIds: number[] = [];
+  const concurrentFlags: boolean[] = [];
+  const newImplicitIds: number[] = [];
+  const seen = new Set<string>([nameKey]);
+
+  for (const prereq of input.prereqs) {
+    const name = prereq.name.trim();
+    if (name.length === 0) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const found = findCourseByName({ ...project, courses }, name);
+    if (found && found.id !== courseId) {
+      prereqIds.push(found.id);
+    } else if (!found) {
+      const implicit = create(CourseSchema, { id: nextId++, name, implicit: true });
+      courses = [...courses, implicit];
+      newImplicitIds.push(implicit.id);
+      prereqIds.push(implicit.id);
+    } else {
+      continue; // matched the course itself
+    }
+    concurrentFlags.push(prereq.concurrent);
+  }
+
+  courses = courses.map((c) =>
+    c.id === courseId
+      ? {
+          ...c,
+          name: trimmedName,
+          unitCount: input.unitCount,
+          notes: input.comments,
+          tracks: [...input.trackIds],
+          prereqs: prereqIds,
+          concurrentPrereq: concurrentFlags,
+          implicit: options.promote ? false : c.implicit,
+        }
+      : c,
+  );
+
+  const updated = courses.find((c) => c.id === courseId);
+  if (updated && newImplicitIds.length > 0) {
+    const assignSlot = makeSlotAssigner(
+      courses.filter((c) => !newImplicitIds.includes(c.id)),
+    );
+    for (const id of newImplicitIds) {
+      const implicit = courses.find((c) => c.id === id);
+      if (!implicit) continue;
+      const index = updated.prereqs.indexOf(id);
+      const concurrent = updated.concurrentPrereq[index] ?? false;
+      const placement = pickTerm(termCount, {
+        prereqs: [],
+        dependents: [{ term: updated.termNumber, concurrent }],
+        nearest,
+      });
+      implicit.termNumber = placement.term;
+      const slot = assignSlot(placement.term);
+      if (slot === null) {
+        return {
+          project,
+          warnings: [
+            `${project.terms[placement.term].name} is full — cannot add prereq “${implicit.name}”.`,
+          ],
+        };
+      }
+      implicit.slots = slot;
+      if (placement.forced) {
+        warnings.push(
+          `Prereq “${implicit.name}” could not be placed before “${trimmedName}” — placed in ${project.terms[placement.term].name}.`,
+        );
+      }
+    }
+  }
+
+  courses = gcStrandedImplicits(courses);
+
+  return { project: { ...project, courses }, warnings };
+}
+
+/**
+ * Remove a course from the project: off the schedule and out of every prereq
+ * list. Any implicit course left with no dependents is removed too, so nothing
+ * is stranded. The course(s) that referenced a deleted implicit prereq are
+ * kept.
+ */
+export function deleteCourse(
+  project: CourseChainProject,
+  courseId: number,
+): CourseChainProject {
+  let courses = project.courses
+    .filter((c) => c.id !== courseId)
+    .map((c) => {
+      if (!c.prereqs.includes(courseId)) return c;
+      const prereqs: number[] = [];
+      const concurrentPrereq: boolean[] = [];
+      c.prereqs.forEach((pid, i) => {
+        if (pid !== courseId) {
+          prereqs.push(pid);
+          concurrentPrereq.push(c.concurrentPrereq[i] ?? false);
+        }
+      });
+      return { ...c, prereqs, concurrentPrereq };
+    });
+  courses = gcStrandedImplicits(courses);
+  return { ...project, courses };
+}
+
+/**
+ * Move a course to a term, taking the lowest free slot there (keeping its
+ * current slot if that one is free).
+ */
 export function moveCourseToTerm(
   project: CourseChainProject,
   courseId: number,
   termNumber: number,
 ): CourseChainProject {
+  const moving = project.courses.find((course) => course.id === courseId);
+  if (!moving) return project;
+
+  const taken = new Set(
+    project.courses
+      .filter((course) => course.id !== courseId && course.termNumber === termNumber)
+      .map((course) => course.slots),
+  );
+  let slot = taken.has(moving.slots) ? 0 : moving.slots;
+  while (taken.has(slot)) slot += 1;
+  if (slot > MAX_SLOT) return project;
+
   return {
     ...project,
     courses: project.courses.map((course) =>
-      course.id === courseId ? { ...course, termNumber } : course,
+      course.id === courseId ? { ...course, termNumber, slots: slot } : course,
     ),
+  };
+}
+
+/**
+ * Move a course to an exact term + slot. If another course already sits there,
+ * the two swap positions so no slot is ever double-booked.
+ */
+export function moveCourseToSlot(
+  project: CourseChainProject,
+  courseId: number,
+  termNumber: number,
+  slot: number,
+): CourseChainProject {
+  if (slot < 0 || slot > MAX_SLOT) return project;
+  const moving = project.courses.find((course) => course.id === courseId);
+  if (!moving) return project;
+  if (moving.termNumber === termNumber && moving.slots === slot) return project;
+
+  const occupant = project.courses.find(
+    (course) =>
+      course.id !== courseId && course.termNumber === termNumber && course.slots === slot,
+  );
+
+  return {
+    ...project,
+    courses: project.courses.map((course) => {
+      if (course.id === courseId) return { ...course, termNumber, slots: slot };
+      if (occupant && course.id === occupant.id) {
+        return { ...course, termNumber: moving.termNumber, slots: moving.slots };
+      }
+      return course;
+    }),
   };
 }

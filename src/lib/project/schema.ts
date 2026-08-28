@@ -38,3 +38,9 @@ export const MAX_TERM_NAME_LENGTH = 40;
 
 /** Longest allowed track name, in characters (trimmed). */
 export const MAX_TRACK_NAME_LENGTH = 100;
+
+/**
+ * Highest allowed `Course.slots` value (the vertical position within a term).
+ * A term therefore holds at most MAX_SLOT + 1 courses.
+ */
+export const MAX_SLOT = 50;

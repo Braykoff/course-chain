@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useMemo, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import type { Course, NewCourseInput, Track } from "@/lib/project";
@@ -19,7 +19,7 @@ interface DraftPrereq {
   concurrent: boolean;
 }
 
-interface AddCourseDraft {
+interface CourseDraft {
   title: string;
   unitCount: number;
   comments: string;
@@ -27,7 +27,7 @@ interface AddCourseDraft {
   prereqs: DraftPrereq[];
 }
 
-interface AddCourseFormProps {
+interface CourseFormProps {
   /** Courses already in the project — used for the prereq search and the
    *  duplicate-name check. */
   courses: Course[];
@@ -35,32 +35,63 @@ interface AddCourseFormProps {
   tracks: Track[];
   onSubmit: (input: NewCourseInput) => void;
   onClose: () => void;
+  /** Pre-fill the form (editing an existing course). Blank when omitted. */
+  initial?: NewCourseInput;
+  /** Text on the primary button. */
+  submitLabel?: string;
+  /** Heading shown at the top of the form. */
+  heading?: string;
+  /** When set, a Delete button is shown that calls this. */
+  onDelete?: () => void;
+  /** Course id to ignore in the duplicate-name check (the one being edited). */
+  excludeCourseId?: number;
 }
 
-export function AddCourseForm({ courses, tracks, onSubmit, onClose }: AddCourseFormProps) {
-  const [draft, setDraft] = useState<AddCourseDraft>({
-    title: "",
-    unitCount: DEFAULT_UNITS,
-    comments: "",
-    trackIds: [],
-    prereqs: [],
-  });
+export function CourseForm({
+  courses,
+  tracks,
+  onSubmit,
+  onClose,
+  initial,
+  submitLabel = "Add",
+  heading = "Add Course",
+  onDelete,
+  excludeCourseId,
+}: CourseFormProps) {
+  const [draft, setDraft] = useState<CourseDraft>(() => ({
+    title: initial?.name ?? "",
+    unitCount: initial?.unitCount ?? DEFAULT_UNITS,
+    comments: initial?.comments ?? "",
+    trackIds: initial?.trackIds ? [...initial.trackIds] : [],
+    prereqs: initial?.prereqs ? initial.prereqs.map((p) => ({ ...p })) : [],
+  }));
   const [prereqQuery, setPrereqQuery] = useState("");
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  // Jump focus to the title when the form opens.
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
 
   const trimmedTitle = draft.title.trim();
   const nameTaken = useMemo(
     () =>
       trimmedTitle.length > 0 &&
-      courses.some((course) => course.name.trim().toLowerCase() === trimmedTitle.toLowerCase()),
-    [courses, trimmedTitle],
+      courses.some(
+        (course) =>
+          course.id !== excludeCourseId &&
+          course.name.trim().toLowerCase() === trimmedTitle.toLowerCase(),
+      ),
+    [courses, excludeCourseId, trimmedTitle],
   );
-  const saveDisabled = trimmedTitle.length === 0 || nameTaken;
+  const submitDisabled = trimmedTitle.length === 0 || nameTaken;
 
   const query = prereqQuery.trim().toLowerCase();
   const prereqMatches = useMemo(() => {
     if (query.length === 0) return [];
     const chosen = new Set(draft.prereqs.map((prereq) => prereq.name.toLowerCase()));
     return courses
+      .filter((course) => course.id !== excludeCourseId)
       .map((course) => course.name.trim())
       .filter(
         (name) =>
@@ -68,13 +99,12 @@ export function AddCourseForm({ courses, tracks, onSubmit, onClose }: AddCourseF
           !chosen.has(name.toLowerCase()) &&
           name.toLowerCase() !== trimmedTitle.toLowerCase(),
       );
-  }, [courses, draft.prereqs, query, trimmedTitle]);
+  }, [courses, draft.prereqs, excludeCourseId, query, trimmedTitle]);
 
   const addPrereq = (name: string) => {
     const trimmed = name.trim();
     if (trimmed.length === 0) return;
-    // A course can't be its own prereq (and this was a way to end up with two
-    // courses sharing a name).
+    // A course can't be its own prereq.
     if (trimmedTitle.length > 0 && trimmed.toLowerCase() === trimmedTitle.toLowerCase()) {
       return;
     }
@@ -115,8 +145,8 @@ export function AddCourseForm({ courses, tracks, onSubmit, onClose }: AddCourseF
     }
   };
 
-  const handleSave = () => {
-    if (saveDisabled) return;
+  const handleSubmit = () => {
+    if (submitDisabled) return;
     onSubmit({
       name: trimmedTitle,
       unitCount: draft.unitCount,
@@ -131,7 +161,7 @@ export function AddCourseForm({ courses, tracks, onSubmit, onClose }: AddCourseF
     <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-gray-900">Add Course</span>
+        <span className="text-sm font-semibold text-gray-900">{heading}</span>
         <button
           type="button"
           aria-label="Close"
@@ -149,6 +179,7 @@ export function AddCourseForm({ courses, tracks, onSubmit, onClose }: AddCourseF
         </label>
         <input
           id="course-title"
+          ref={titleRef}
           className={`${inputClass} ${nameTaken ? "border-red-400 focus:border-red-400 focus:ring-red-400" : ""}`}
           value={draft.title}
           onChange={(event) =>
@@ -297,15 +328,26 @@ export function AddCourseForm({ courses, tracks, onSubmit, onClose }: AddCourseF
         </div>
       </div>
 
-      {/* Save */}
-      <div className="flex justify-end pt-1">
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-1">
+        {onDelete ? (
+          <button
+            type="button"
+            className="rounded-md px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+            onClick={onDelete}
+          >
+            Delete
+          </button>
+        ) : (
+          <span />
+        )}
         <button
           type="button"
           className="rounded-md bg-royal-600 px-4 py-1.5 text-sm font-semibold text-white transition hover:bg-royal-700 disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={saveDisabled}
-          onClick={handleSave}
+          disabled={submitDisabled}
+          onClick={handleSubmit}
         >
-          Save
+          {submitLabel}
         </button>
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   deserializeProject,
   MAX_PROJECT_NAME_LENGTH,
+  MAX_SLOT,
   MAX_TERM_NAME_LENGTH,
   MAX_TERMS,
   MAX_TRACK_NAME_LENGTH,
@@ -37,27 +38,35 @@ function makeValidProject(): CourseChainProject {
     // so the round-trip tests actually exercise it.
     courses: [
       {
-        id: 1, name: "CS 61A", unitCount: 4, prereqs: [], termNumber: 0,
+        id: 1, name: "CS 61A", unitCount: 4, prereqs: [], termNumber: 0, slots: 0,
         concurrentPrereq: [], implicit: false, notes: "", tracks: [],
       },
       {
-        id: 2, name: "CS 61B", unitCount: 4, prereqs: [1], termNumber: 1,
+        id: 2, name: "CS 61B", unitCount: 4, prereqs: [1], termNumber: 1, slots: 0,
         concurrentPrereq: [false], implicit: false, notes: "heavy workload", tracks: [11],
       },
       {
-        id: 3, name: "CS 70", unitCount: 4, prereqs: [1], termNumber: 1,
+        id: 3, name: "CS 70", unitCount: 4, prereqs: [1], termNumber: 1, slots: 1,
         concurrentPrereq: [true], implicit: false, notes: "", tracks: [10],
       },
       {
-        id: 4, name: "CS 170", unitCount: 4, prereqs: [2, 3], termNumber: 2,
+        id: 4, name: "CS 170", unitCount: 4, prereqs: [2, 3], termNumber: 2, slots: 0,
         concurrentPrereq: [false, true], implicit: true, notes: "capstone", tracks: [10, 11],
       },
     ],
   });
 }
 
+// Distinct slots keep same-term test courses from colliding.
 const course = (id: number, prereqs: number[]) =>
-  create(CourseSchema, { id, name: `c${id}`, unitCount: 3, prereqs, termNumber: 0 });
+  create(CourseSchema, {
+    id,
+    name: `c${id}`,
+    unitCount: 3,
+    prereqs,
+    termNumber: 0,
+    slots: id,
+  });
 
 const term = (start: number, end: number, name: string) =>
   create(TermSchema, { start, end, name, autopopulate: false });
@@ -223,6 +232,13 @@ describe("validateProject accepts", () => {
 
     expect(() => validateProject(project)).not.toThrow();
   });
+
+  it(`a course in slot ${MAX_SLOT} with gaps below it`, () => {
+    const project = makeValidProject();
+    project.courses[0].slots = MAX_SLOT; // term 0, only course there
+
+    expect(() => validateProject(project)).not.toThrow();
+  });
 });
 
 interface RejectionCase {
@@ -350,6 +366,20 @@ const rejectionCases: RejectionCase[] = [
       p.courses[1].name = p.courses[0].name.toLowerCase();
     },
     message: /duplicate course name .* case-insensitive/,
+  },
+  {
+    name: "two courses in the same term sharing a slot",
+    mutate: (p) => {
+      p.courses[2].slots = p.courses[1].slots; // both in term 1
+    },
+    message: /slot .* is already taken/,
+  },
+  {
+    name: `a slot above ${MAX_SLOT}`,
+    mutate: (p) => {
+      p.courses[0].slots = MAX_SLOT + 1;
+    },
+    message: /out of range/,
   },
   {
     name: "a negative unit count",

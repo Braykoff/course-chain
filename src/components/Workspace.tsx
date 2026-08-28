@@ -17,7 +17,7 @@ export function Workspace() {
 
   return (
     // Launcher — centered project-entry options
-    <div className="flex flex-1 items-center justify-center px-6 py-16">
+    <div className="flex flex-1 items-center justify-center overflow-y-auto px-6 py-16">
       <HomeOptions onOpenProject={setProject} />
     </div>
   );

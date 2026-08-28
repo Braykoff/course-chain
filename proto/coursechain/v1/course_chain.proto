@@ -65,6 +65,11 @@ message Course {
   // Ids of tracks this course counts toward; each entry is a Track.id from
   // CourseChainProject.tracks.
   repeated uint32 tracks = 9;
+
+  // Vertical position of the course within its term column. 0 is the top;
+  // gaps between slots are allowed. validateProject() requires slots to be
+  // 0..MAX_SLOT and unique among the courses sharing a term.
+  uint32 slots = 10;
 }
 
 // Top-level document. This is the message serialized to and parsed from files

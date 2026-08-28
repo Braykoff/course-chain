@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file coursechain/v1/course_chain.proto.
  */
 export const file_coursechain_v1_course_chain: GenFile = /*@__PURE__*/
-  fileDesc("CiFjb3Vyc2VjaGFpbi92MS9jb3Vyc2VfY2hhaW4ucHJvdG8SDmNvdXJzZWNoYWluLnYxIkYKBFRlcm0SDQoFc3RhcnQYASABKA0SCwoDZW5kGAIgASgNEgwKBG5hbWUYAyABKAkSFAoMYXV0b3BvcHVsYXRlGAQgASgIIiEKBVRyYWNrEgoKAmlkGAEgASgNEgwKBG5hbWUYAiABKAkiqAEKBkNvdXJzZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEhIKCnVuaXRfY291bnQYAyABKA0SDwoHcHJlcmVxcxgEIAMoDRITCgt0ZXJtX251bWJlchgFIAEoDRIZChFjb25jdXJyZW50X3ByZXJlcRgGIAMoCBIQCghpbXBsaWNpdBgHIAEoCBINCgVub3RlcxgIIAEoCRIOCgZ0cmFja3MYCSADKA0irwEKEkNvdXJzZUNoYWluUHJvamVjdBIWCg52ZXJzaW9uX251bWJlchgBIAEoDRInCgdjb3Vyc2VzGAIgAygLMhYuY291cnNlY2hhaW4udjEuQ291cnNlEiMKBXRlcm1zGAMgAygLMhQuY291cnNlY2hhaW4udjEuVGVybRIMCgRuYW1lGAQgASgJEiUKBnRyYWNrcxgFIAMoCzIVLmNvdXJzZWNoYWluLnYxLlRyYWNrYgZwcm90bzM");
+  fileDesc("CiFjb3Vyc2VjaGFpbi92MS9jb3Vyc2VfY2hhaW4ucHJvdG8SDmNvdXJzZWNoYWluLnYxIkYKBFRlcm0SDQoFc3RhcnQYASABKA0SCwoDZW5kGAIgASgNEgwKBG5hbWUYAyABKAkSFAoMYXV0b3BvcHVsYXRlGAQgASgIIiEKBVRyYWNrEgoKAmlkGAEgASgNEgwKBG5hbWUYAiABKAkitwEKBkNvdXJzZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEhIKCnVuaXRfY291bnQYAyABKA0SDwoHcHJlcmVxcxgEIAMoDRITCgt0ZXJtX251bWJlchgFIAEoDRIZChFjb25jdXJyZW50X3ByZXJlcRgGIAMoCBIQCghpbXBsaWNpdBgHIAEoCBINCgVub3RlcxgIIAEoCRIOCgZ0cmFja3MYCSADKA0SDQoFc2xvdHMYCiABKA0irwEKEkNvdXJzZUNoYWluUHJvamVjdBIWCg52ZXJzaW9uX251bWJlchgBIAEoDRInCgdjb3Vyc2VzGAIgAygLMhYuY291cnNlY2hhaW4udjEuQ291cnNlEiMKBXRlcm1zGAMgAygLMhQuY291cnNlY2hhaW4udjEuVGVybRIMCgRuYW1lGAQgASgJEiUKBnRyYWNrcxgFIAMoCzIVLmNvdXJzZWNoYWluLnYxLlRyYWNrYgZwcm90bzM");
 
 /**
  * A planning term, e.g. "Fall 2026". Terms are defined once when a project is
@@ -222,6 +222,15 @@ export type Course = Message<"coursechain.v1.Course"> & {
    * @generated from field: repeated uint32 tracks = 9;
    */
   tracks: number[];
+
+  /**
+   * Vertical position of the course within its term column. 0 is the top;
+   * gaps between slots are allowed. validateProject() requires slots to be
+   * 0..MAX_SLOT and unique among the courses sharing a term.
+   *
+   * @generated from field: uint32 slots = 10;
+   */
+  slots: number;
 };
 
 /**
@@ -298,6 +307,15 @@ export type CourseJson = {
    * @generated from field: repeated uint32 tracks = 9;
    */
   tracks?: number[];
+
+  /**
+   * Vertical position of the course within its term column. 0 is the top;
+   * gaps between slots are allowed. validateProject() requires slots to be
+   * 0..MAX_SLOT and unique among the courses sharing a term.
+   *
+   * @generated from field: uint32 slots = 10;
+   */
+  slots?: number;
 };
 
 /**

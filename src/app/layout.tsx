@@ -21,13 +21,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-white text-gray-900">
+      {/* Lock the app to the viewport; inner regions do their own scrolling. */}
+      <body className="flex h-full flex-col overflow-hidden bg-white text-gray-900">
         <WorkspaceProvider>
           {/* Global top bar */}
           <TopBar />
 
           {/* Active page */}
-          <main className="flex flex-1 flex-col">{children}</main>
+          <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         </WorkspaceProvider>
       </body>
     </html>
