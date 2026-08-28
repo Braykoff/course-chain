@@ -6,7 +6,9 @@ import {
   courseConflicts,
   courseHasConflict,
   CURRENT_SCHEMA_VERSION,
+  courseDependents,
   deleteCourse,
+  hasPrereqCycle,
   MAX_SLOT,
   moveCourseToSlot,
   moveCourseToTerm,
@@ -467,5 +469,45 @@ describe("trackPrereqClosure", () => {
   it("is empty for a track no course uses", () => {
     const p = trackedProject();
     expect([...trackPrereqClosure(p, 99)]).toEqual([]);
+  });
+});
+
+describe("circular prereqs", () => {
+  // BASE <- MID <- TOP  (TOP requires MID requires BASE)
+  const chain = () => {
+    let p = baseProject(6);
+    p = addCourse(p, input({ name: "BASE" }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "MID", prereqs: [{ name: "BASE", concurrent: false }] }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "TOP", prereqs: [{ name: "MID", concurrent: false }] }), INSIDE_TERM_2).project;
+    return p;
+  };
+
+  it("courseDependents returns transitive dependents", () => {
+    const p = chain();
+    const deps = courseDependents(p.courses, named(p, "BASE").id);
+    const names = new Set([...deps].map((id) => p.courses.find((c) => c.id === id)!.name));
+    expect(names).toEqual(new Set(["MID", "TOP"]));
+  });
+
+  it("hasPrereqCycle is false for a DAG and true once a loop is closed", () => {
+    const p = chain();
+    expect(hasPrereqCycle(p.courses)).toBe(false);
+    const looped = p.courses.map((c) =>
+      c.name === "BASE" ? { ...c, prereqs: [named(p, "TOP").id] } : c,
+    );
+    expect(hasPrereqCycle(looped)).toBe(true);
+  });
+
+  it("updateCourse refuses a prereq that depends on the course", () => {
+    const p = chain();
+    const result = updateCourse(
+      p,
+      named(p, "BASE").id,
+      input({ name: "BASE", prereqs: [{ name: "TOP", concurrent: false }] }),
+      {},
+      INSIDE_TERM_2,
+    );
+    expect(result.project).toBe(p);
+    expect(result.warnings.join(" ")).toMatch(/circular/i);
   });
 });

@@ -3,7 +3,7 @@
 import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
-import type { Course, NewCourseInput, Track } from "@/lib/project";
+import { type Course, courseDependents, type NewCourseInput, type Track } from "@/lib/project";
 
 const DEFAULT_UNITS = 4;
 const MIN_UNITS = 0;
@@ -84,14 +84,31 @@ export function CourseForm({
       ),
     [courses, excludeCourseId, trimmedTitle],
   );
-  const submitDisabled = trimmedTitle.length === 0 || nameTaken;
+  // Names of courses that (transitively) require the course being edited —
+  // choosing one as a prereq would close a loop, so it's blocked.
+  const cyclicNameKeys = useMemo(() => {
+    if (excludeCourseId == null) return new Set<string>();
+    const blockedIds = courseDependents(courses, excludeCourseId);
+    return new Set(
+      courses
+        .filter((course) => blockedIds.has(course.id))
+        .map((course) => course.name.trim().toLowerCase()),
+    );
+  }, [courses, excludeCourseId]);
+
+  const wouldCycle = (name: string) => cyclicNameKeys.has(name.trim().toLowerCase());
+  const draftHasCycle = draft.prereqs.some((prereq) => wouldCycle(prereq.name));
+  const submitDisabled = trimmedTitle.length === 0 || nameTaken || draftHasCycle;
 
   const query = prereqQuery.trim().toLowerCase();
   const prereqMatches = useMemo(() => {
     if (query.length === 0) return [];
     const chosen = new Set(draft.prereqs.map((prereq) => prereq.name.toLowerCase()));
     return courses
-      .filter((course) => course.id !== excludeCourseId)
+      .filter(
+        (course) =>
+          course.id !== excludeCourseId && !cyclicNameKeys.has(course.name.trim().toLowerCase()),
+      )
       .map((course) => course.name.trim())
       .filter(
         (name) =>
@@ -99,15 +116,16 @@ export function CourseForm({
           !chosen.has(name.toLowerCase()) &&
           name.toLowerCase() !== trimmedTitle.toLowerCase(),
       );
-  }, [courses, draft.prereqs, excludeCourseId, query, trimmedTitle]);
+  }, [courses, cyclicNameKeys, draft.prereqs, excludeCourseId, query, trimmedTitle]);
 
   const addPrereq = (name: string) => {
     const trimmed = name.trim();
     if (trimmed.length === 0) return;
-    // A course can't be its own prereq.
+    // A course can't be its own prereq, nor one that depends on it (a loop).
     if (trimmedTitle.length > 0 && trimmed.toLowerCase() === trimmedTitle.toLowerCase()) {
       return;
     }
+    if (wouldCycle(trimmed)) return;
     setDraft((current) =>
       current.prereqs.some((prereq) => prereq.name.toLowerCase() === trimmed.toLowerCase())
         ? current
@@ -311,6 +329,11 @@ export function CourseForm({
               trimmedTitle.length > 0 ? (
                 <li className="px-3 py-1 text-xs text-gray-400">
                   A course can&rsquo;t be its own prereq.
+                </li>
+              ) : wouldCycle(prereqQuery) ? (
+                <li className="px-3 py-1 text-xs text-gray-400">
+                  &ldquo;{prereqQuery.trim()}&rdquo; depends on this course &mdash; that
+                  would create a loop.
                 </li>
               ) : (
                 <li>

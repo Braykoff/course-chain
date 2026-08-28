@@ -166,6 +166,47 @@ export function trackPrereqClosure(
   return set;
 }
 
+/** Every course that requires `courseId`, directly or transitively. */
+export function courseDependents(courses: Course[], courseId: number): Set<number> {
+  const dependents = new Map<number, number[]>();
+  for (const course of courses) {
+    for (const prereqId of course.prereqs) {
+      const list = dependents.get(prereqId);
+      if (list) list.push(course.id);
+      else dependents.set(prereqId, [course.id]);
+    }
+  }
+  const result = new Set<number>();
+  const stack = [...(dependents.get(courseId) ?? [])];
+  while (stack.length > 0) {
+    const id = stack.pop() as number;
+    if (result.has(id)) continue;
+    result.add(id);
+    for (const dependentId of dependents.get(id) ?? []) stack.push(dependentId);
+  }
+  return result;
+}
+
+/** True if the prereq graph over `courses` contains a directed cycle. */
+export function hasPrereqCycle(courses: Course[]): boolean {
+  const prereqsById = new Map(courses.map((c) => [c.id, c.prereqs]));
+  const state = new Map<number, "visiting" | "done">();
+
+  const visit = (id: number): boolean => {
+    const s = state.get(id);
+    if (s === "done") return false;
+    if (s === "visiting") return true;
+    state.set(id, "visiting");
+    for (const prereqId of prereqsById.get(id) ?? []) {
+      if (visit(prereqId)) return true;
+    }
+    state.set(id, "done");
+    return false;
+  };
+
+  return courses.some((course) => visit(course.id));
+}
+
 interface PlacementBounds {
   prereqs: { term: number; concurrent: boolean }[];
   dependents: { term: number; concurrent: boolean }[];
@@ -459,6 +500,13 @@ export function updateCourse(
         }
       : c,
   );
+
+  if (hasPrereqCycle(courses)) {
+    return {
+      project,
+      warnings: ["Those prereqs would create a circular dependency — not saved."],
+    };
+  }
 
   const updated = courses.find((c) => c.id === courseId);
   if (updated && newImplicitIds.length > 0) {
