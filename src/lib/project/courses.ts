@@ -137,6 +137,35 @@ export function prereqChain(
   return chain;
 }
 
+/**
+ * Every course that counts toward `trackId`, plus every course that is a prereq
+ * (to any depth) of one of them.
+ */
+export function trackPrereqClosure(
+  project: CourseChainProject,
+  trackId: number,
+): Set<number> {
+  const byId = new Map(project.courses.map((c) => [c.id, c]));
+  const set = new Set<number>();
+  const stack: number[] = [];
+  for (const course of project.courses) {
+    if (course.tracks.includes(trackId)) {
+      set.add(course.id);
+      stack.push(course.id);
+    }
+  }
+  while (stack.length > 0) {
+    const id = stack.pop() as number;
+    for (const prereqId of byId.get(id)?.prereqs ?? []) {
+      if (!set.has(prereqId)) {
+        set.add(prereqId);
+        stack.push(prereqId);
+      }
+    }
+  }
+  return set;
+}
+
 interface PlacementBounds {
   prereqs: { term: number; concurrent: boolean }[];
   dependents: { term: number; concurrent: boolean }[];

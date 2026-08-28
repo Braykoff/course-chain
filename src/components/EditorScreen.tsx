@@ -19,6 +19,7 @@ import {
   moveCourseToSlot,
   type NewCourseInput,
   prereqChain,
+  trackPrereqClosure,
   updateCourse,
 } from "@/lib/project";
 import { CourseCard } from "./CourseCard";
@@ -71,6 +72,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
   const [implicitHelpPinned, setImplicitHelpPinned] = useState(false);
   const [expandedCourseId, setExpandedCourseId] = useState<number | null>(null);
   const [focusedCourseId, setFocusedCourseId] = useState<number | null>(null);
+  const [selectedTrackId, setSelectedTrackId] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -100,11 +102,14 @@ export function EditorScreen({ project }: EditorScreenProps) {
     .filter((course) => course.implicit)
     .sort(byCalendarOrder);
 
-  // When a schedule course is clicked, everything outside its prereq chain fades.
-  const chainIds =
+  // A clicked course fades everything outside its prereq chain; a clicked track
+  // fades everything but its courses and their prereqs. Only one at a time.
+  const highlightIds =
     focusedCourseId != null && project.courses.some((c) => c.id === focusedCourseId)
       ? prereqChain(project, focusedCourseId)
-      : null;
+      : selectedTrackId != null && project.tracks.some((t) => t.id === selectedTrackId)
+        ? trackPrereqClosure(project, selectedTrackId)
+        : null;
 
   // Start the board scrolled so the focused term sits in the middle.
   useEffect(() => {
@@ -143,6 +148,21 @@ export function EditorScreen({ project }: EditorScreenProps) {
     const result = addCourse(project, input, todayDay);
     setProject(result.project);
     setWarnings(result.warnings);
+  };
+
+  const clearHighlight = () => {
+    setFocusedCourseId(null);
+    setSelectedTrackId(null);
+  };
+
+  const handleSelectCourse = (id: number) => {
+    setSelectedTrackId(null);
+    setFocusedCourseId((current) => (current === id ? null : id));
+  };
+
+  const handleSelectTrack = (id: number) => {
+    setFocusedCourseId(null);
+    setSelectedTrackId((current) => (current === id ? null : id));
   };
 
   const handleSaveCourse = (id: number, input: NewCourseInput, promote: boolean) => {
@@ -243,7 +263,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
   return (
     <div
       className="relative flex min-h-0 flex-1 overflow-hidden"
-      onClick={() => setFocusedCourseId(null)}
+      onClick={clearHighlight}
       onDragStart={() => setDragging(true)}
       onDragEnd={() => {
         setDragging(false);
@@ -394,8 +414,8 @@ export function EditorScreen({ project }: EditorScreenProps) {
               </defs>
               {arrows.arrows.map((arrow) => {
                 const inChain =
-                  chainIds == null ||
-                  (chainIds.has(arrow.fromId) && chainIds.has(arrow.toId));
+                  highlightIds == null ||
+                  (highlightIds.has(arrow.fromId) && highlightIds.has(arrow.toId));
                 return (
                   <path
                     key={arrow.key}
@@ -516,13 +536,9 @@ export function EditorScreen({ project }: EditorScreenProps) {
                               course={course}
                               conflict={conflictsById.has(course.id)}
                               conflictTitle={conflictsById.get(course.id)?.join("\n")}
-                              onSelect={(id) =>
-                                setFocusedCourseId((current) =>
-                                  current === id ? null : id,
-                                )
-                              }
+                              onSelect={handleSelectCourse}
                               focused={focusedCourseId === course.id}
-                              dimmed={chainIds != null && !chainIds.has(course.id)}
+                              dimmed={highlightIds != null && !highlightIds.has(course.id)}
                             />
                           )}
                         </div>
@@ -535,6 +551,37 @@ export function EditorScreen({ project }: EditorScreenProps) {
           })}
         </div>
       </div>
+
+      {/* Floating track filter — bottom-right; click one to highlight its chain */}
+      {project.tracks.length > 0 && (
+        <div
+          onClick={(event) => event.stopPropagation()}
+          className="absolute bottom-4 right-4 z-20 max-w-[14rem] rounded-lg border border-gray-200 bg-white/95 p-2 shadow-lg backdrop-blur"
+        >
+          <p className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+            Tracks
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {project.tracks.map((track) => {
+              const active = selectedTrackId === track.id;
+              return (
+                <button
+                  key={track.id}
+                  type="button"
+                  onClick={() => handleSelectTrack(track.id)}
+                  className={`truncate rounded px-2 py-1 text-left text-xs transition-colors ${
+                    active
+                      ? "bg-royal-100 font-medium text-royal-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  {track.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

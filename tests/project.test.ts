@@ -316,7 +316,7 @@ const rejectionCases: RejectionCase[] = [
     mutate: (p) => {
       p.tracks = manyTracks(MAX_TRACKS + 1);
     },
-    message: /the maximum is 100/,
+    message: new RegExp(`the maximum is ${MAX_TRACKS}`),
   },
   {
     name: "a blank track name",

@@ -153,7 +153,9 @@ describe("validateDraft", () => {
   it(`rejects more than ${MAX_TRACKS} tracks`, () => {
     const draft = validDraft();
     draft.tracks = Array.from({ length: MAX_TRACKS + 1 }, (_, i) => makeDraftTrack(`Track ${i}`));
-    expect(validateDraft(draft).join("\n")).toMatch(/maximum is 100/);
+    expect(validateDraft(draft).join("\n")).toMatch(
+      new RegExp(`maximum is ${MAX_TRACKS}`),
+    );
   });
 });
 

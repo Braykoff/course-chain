@@ -13,6 +13,7 @@ import {
   nearestTermIndex,
   type NewCourseInput,
   prereqChain,
+  trackPrereqClosure,
   updateCourse,
   validateProject,
 } from "@/lib/project";
@@ -426,5 +427,45 @@ describe("prereqChain", () => {
   it("returns just the course itself when it has no links", () => {
     const p = addCourse(baseProject(6), input({ name: "Lonely" }), INSIDE_TERM_2).project;
     expect([...prereqChain(p, named(p, "Lonely").id)]).toEqual([named(p, "Lonely").id]);
+  });
+});
+
+describe("trackPrereqClosure", () => {
+  const trackedProject = () => {
+    let p = create(CourseChainProjectSchema, {
+      versionNumber: CURRENT_SCHEMA_VERSION,
+      name: "Plan",
+      terms: Array.from({ length: 6 }, (_, i) => ({
+        name: `Term ${i}`,
+        start: 20_000 + i * 100,
+        end: 20_000 + i * 100 + 90,
+        autopopulate: false,
+      })),
+      courses: [],
+      tracks: [{ id: 0, name: "Theory" }],
+    });
+    // BASE  <- MID  <- TOP(track 0)   ;   OFF(track 0, no prereqs)   ;   OTHER (unrelated)
+    p = addCourse(p, input({ name: "BASE" }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "MID", prereqs: [{ name: "BASE", concurrent: false }] }), INSIDE_TERM_2).project;
+    p = addCourse(
+      p,
+      input({ name: "TOP", trackIds: [0], prereqs: [{ name: "MID", concurrent: false }] }),
+      INSIDE_TERM_2,
+    ).project;
+    p = addCourse(p, input({ name: "OFF", trackIds: [0] }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "OTHER" }), INSIDE_TERM_2).project;
+    return p;
+  };
+
+  it("includes track courses and every prereq beneath them", () => {
+    const p = trackedProject();
+    const ids = trackPrereqClosure(p, 0);
+    const names = new Set([...ids].map((id) => p.courses.find((c) => c.id === id)!.name));
+    expect(names).toEqual(new Set(["TOP", "MID", "BASE", "OFF"]));
+  });
+
+  it("is empty for a track no course uses", () => {
+    const p = trackedProject();
+    expect([...trackPrereqClosure(p, 99)]).toEqual([]);
   });
 });
