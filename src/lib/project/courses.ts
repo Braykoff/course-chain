@@ -216,15 +216,16 @@ export function hasPrereqCycle(courses: Course[]): boolean {
 interface PlacementBounds {
   prereqs: { term: number; concurrent: boolean }[];
   dependents: { term: number; concurrent: boolean }[];
-  nearest: number;
+  /** Where to place the course when nothing else constrains it. */
+  anchor: number;
 }
 
 /**
  * Pick a term index for a course: after its prereqs (same term when the link is
- * concurrent), before its dependents, otherwise the term nearest today. Terms
- * with `autopopulate` off are skipped when a suitable one with it on is
- * reachable within the allowed window. Clamps into range and reports when
- * clamping was needed.
+ * concurrent), before its dependents, otherwise `bounds.anchor`. Terms with
+ * `autopopulate` off are skipped when a suitable one with it on is reachable
+ * within the allowed window. Clamps into range and reports when clamping was
+ * needed.
  */
 function pickTerm(
   autopopulate: boolean[],
@@ -239,7 +240,7 @@ function pickTerm(
     : undefined;
 
   let candidate: number;
-  if (lower === undefined && upper === undefined) candidate = bounds.nearest;
+  if (lower === undefined && upper === undefined) candidate = bounds.anchor;
   else if (lower !== undefined) candidate = lower;
   else candidate = upper as number;
 
@@ -274,14 +275,22 @@ function pickTerm(
  * Add a course to a project. Prereq names that don't match an existing course
  * become new implicit courses. Every new course is auto-placed into a term
  * (see {@link pickTerm}); forced placements are returned as `warnings`.
+ *
+ * A course with no prereq/dependent links lands in `preferredTerm` when the
+ * caller supplies one (the editor passes the column centered on screen);
+ * otherwise it falls back to the term nearest `todayDay`.
  */
 export function addCourse(
   project: CourseChainProject,
   input: NewCourseInput,
   todayDay: number = todayEpochDay(),
+  preferredTerm?: number,
 ): AddCourseResult {
   const autopopulate = project.terms.map((term) => term.autopopulate);
-  const nearest = nearestTermIndex(project, todayDay);
+  const anchor =
+    preferredTerm === undefined
+      ? nearestTermIndex(project, todayDay)
+      : Math.min(project.terms.length - 1, Math.max(0, Math.trunc(preferredTerm)));
   const warnings: string[] = [];
 
   const trimmedName = input.name.trim();
@@ -357,7 +366,7 @@ export function addCourse(
   const placement = pickTerm(autopopulate, {
     prereqs: placedPrereqBounds,
     dependents: [],
-    nearest,
+    anchor,
   });
   course.termNumber = placement.term;
   if (placement.forced) {
@@ -375,7 +384,7 @@ export function addCourse(
     const implicitPlacement = pickTerm(autopopulate, {
       prereqs: [],
       dependents: [{ term: course.termNumber, concurrent }],
-      nearest,
+      anchor,
     });
     implicit.termNumber = implicitPlacement.term;
     if (implicitPlacement.forced) {
@@ -486,7 +495,7 @@ export function updateCourse(
   }
 
   const autopopulate = project.terms.map((term) => term.autopopulate);
-  const nearest = nearestTermIndex(project, todayDay);
+  const anchor = nearestTermIndex(project, todayDay);
   const warnings: string[] = [];
 
   let courses = [...project.courses];
@@ -552,7 +561,7 @@ export function updateCourse(
       const placement = pickTerm(autopopulate, {
         prereqs: [],
         dependents: [{ term: updated.termNumber, concurrent }],
-        nearest,
+        anchor,
       });
       implicit.termNumber = placement.term;
       const slot = assignSlot(placement.term);

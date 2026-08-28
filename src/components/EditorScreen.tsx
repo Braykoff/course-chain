@@ -155,8 +155,31 @@ export function EditorScreen({ project }: EditorScreenProps) {
     if (next !== project) updateProject(next);
   };
 
+  // The term column whose midpoint is nearest the center of the scroll viewport
+  // right now. A new course with no prereq links drops here by default, so it
+  // lands in the term the user is actually looking at rather than the one
+  // nearest today's date.
+  const centeredTermIndex = (): number => {
+    const container = scrollRef.current;
+    const board = boardRef.current;
+    if (!container || !board) return focusIndex;
+    const containerRect = container.getBoundingClientRect();
+    const mid = containerRect.left + containerRect.width / 2;
+    let best = focusIndex;
+    let bestDistance = Infinity;
+    board.querySelectorAll<HTMLElement>("section").forEach((section, index) => {
+      const rect = section.getBoundingClientRect();
+      const distance = Math.abs(rect.left + rect.width / 2 - mid);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = index;
+      }
+    });
+    return best;
+  };
+
   const handleAddCourse = (input: NewCourseInput) => {
-    const result = addCourse(project, input, todayDay);
+    const result = addCourse(project, input, todayDay, centeredTermIndex());
     commit(result.project);
     setWarnings(result.warnings);
   };

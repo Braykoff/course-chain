@@ -70,6 +70,37 @@ describe("addCourse — placement", () => {
     expect(warnings).toEqual([]);
   });
 
+  it("places an unlinked course in preferredTerm when the caller passes one", () => {
+    const { project } = addCourse(
+      baseProject(6),
+      input({ name: "A" }),
+      INSIDE_TERM_2,
+      4,
+    );
+    expect(named(project, "A").termNumber).toBe(4);
+  });
+
+  it("clamps an out-of-range preferredTerm into the calendar", () => {
+    const { project } = addCourse(
+      baseProject(6),
+      input({ name: "A" }),
+      INSIDE_TERM_2,
+      99,
+    );
+    expect(named(project, "A").termNumber).toBe(5);
+  });
+
+  it("still lets prereq links win over preferredTerm", () => {
+    const withP = addCourse(baseProject(6), input({ name: "P" }), INSIDE_TERM_2).project;
+    const { project } = addCourse(
+      withP,
+      input({ name: "C", prereqs: [{ name: "P", concurrent: false }] }),
+      INSIDE_TERM_2,
+      0,
+    );
+    expect(named(project, "C").termNumber).toBe(3);
+  });
+
   it("puts a course one term after a non-concurrent prereq", () => {
     const withP = addCourse(baseProject(6), input({ name: "P" }), INSIDE_TERM_2).project;
     const { project } = addCourse(
