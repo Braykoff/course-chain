@@ -92,4 +92,8 @@ message CourseChainProject {
   // All tracks defined in the project. Course.tracks entries refer to these
   // by id.
   repeated Track tracks = 5;
+
+  // Stable identifier for this project. Assigned a random UUID when the project
+  // is created and never changed afterward.
+  string project_id = 6;
 }

@@ -146,11 +146,11 @@ export function isoToEpochDay(iso: string): number {
 }
 
 /**
- * Build a {@link CourseChainProject} from a draft: names are trimmed, dates
- * become epoch-day counts, blank track inputs are dropped and the rest get
- * sequential ids, and the course list starts empty. Callers should still run
- * {@link validateProject} on the result (or {@link validateDraft} on the draft
- * first).
+ * Build a {@link CourseChainProject} from a draft: a fresh random `projectId`
+ * is assigned, names are trimmed, dates become epoch-day counts, blank track
+ * inputs are dropped and the rest get sequential ids, and the course list
+ * starts empty. Callers should still run {@link validateProject} on the result
+ * (or {@link validateDraft} on the draft first).
  */
 export function draftToProject(draft: NewProjectDraft): CourseChainProject {
   const trackNames = draft.tracks
@@ -159,6 +159,7 @@ export function draftToProject(draft: NewProjectDraft): CourseChainProject {
 
   return create(CourseChainProjectSchema, {
     versionNumber: CURRENT_SCHEMA_VERSION,
+    projectId: crypto.randomUUID(),
     name: draft.title.trim(),
     terms: draft.terms.map((term) => ({
       name: term.name.trim(),

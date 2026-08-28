@@ -234,6 +234,15 @@ describe("draftToProject", () => {
     expect(() => validateProject(project)).not.toThrow();
   });
 
+  it("assigns a fresh random UUID as the project id", () => {
+    const a = draftToProject(validDraft());
+    const b = draftToProject(validDraft());
+    expect(a.projectId).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    expect(a.projectId).not.toBe(b.projectId);
+  });
+
   it("turns each template into a project that passes validateProject", () => {
     const today = new Date("2026-08-27T12:00:00Z");
     for (const template of TEMPLATE_OPTIONS) {
