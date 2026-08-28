@@ -18,6 +18,7 @@ import {
   MAX_SLOT,
   moveCourseToSlot,
   type NewCourseInput,
+  prereqChain,
   updateCourse,
 } from "@/lib/project";
 import { CourseCard } from "./CourseCard";
@@ -69,6 +70,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
   const [implicitHelpHover, setImplicitHelpHover] = useState(false);
   const [implicitHelpPinned, setImplicitHelpPinned] = useState(false);
   const [expandedCourseId, setExpandedCourseId] = useState<number | null>(null);
+  const [focusedCourseId, setFocusedCourseId] = useState<number | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -97,6 +99,12 @@ export function EditorScreen({ project }: EditorScreenProps) {
   const implicitCourses = project.courses
     .filter((course) => course.implicit)
     .sort(byCalendarOrder);
+
+  // When a schedule course is clicked, everything outside its prereq chain fades.
+  const chainIds =
+    focusedCourseId != null && project.courses.some((c) => c.id === focusedCourseId)
+      ? prereqChain(project, focusedCourseId)
+      : null;
 
   // Start the board scrolled so the focused term sits in the middle.
   useEffect(() => {
@@ -178,6 +186,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
               course={course}
               conflict={conflictsById.has(course.id)}
               conflictTitle={conflictsById.get(course.id)?.join("\n")}
+              completed={statuses[course.termNumber] === "past"}
             />
           </div>
           <button
@@ -234,6 +243,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
   return (
     <div
       className="relative flex min-h-0 flex-1 overflow-hidden"
+      onClick={() => setFocusedCourseId(null)}
       onDragStart={() => setDragging(true)}
       onDragEnd={() => {
         setDragging(false);
@@ -317,9 +327,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
                   className="absolute left-0 right-0 top-6 z-20 rounded-md border border-gray-200 bg-white p-2 text-[11px] font-normal normal-case leading-snug tracking-normal text-gray-600 shadow-lg"
                 >
                   Courses added automatically because you named them as a prereq
-                  without defining them. They&rsquo;re scheduled on the calendar
-                  like any other course — add a course with the same name to make
-                  one a normal course.
+                  without defining them.
                 </div>
               )}
               <div className="space-y-2">{implicitCourses.map(renderCourseRow)}</div>
@@ -384,22 +392,29 @@ export function EditorScreen({ project }: EditorScreenProps) {
                   <path d="M0 0 L10 5 L0 10 z" className="fill-red-500" />
                 </marker>
               </defs>
-              {arrows.arrows.map((arrow) => (
-                <path
-                  key={arrow.key}
-                  d={arrow.d}
-                  fill="none"
-                  className={arrow.conflict ? "stroke-red-500" : "stroke-royal-500"}
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  markerEnd={
-                    arrow.conflict
-                      ? "url(#cc-prereq-arrowhead-conflict)"
-                      : "url(#cc-prereq-arrowhead)"
-                  }
-                />
-              ))}
+              {arrows.arrows.map((arrow) => {
+                const inChain =
+                  chainIds == null ||
+                  (chainIds.has(arrow.fromId) && chainIds.has(arrow.toId));
+                return (
+                  <path
+                    key={arrow.key}
+                    d={arrow.d}
+                    fill="none"
+                    className={`${arrow.conflict ? "stroke-red-500" : "stroke-royal-500"} ${
+                      inChain ? "" : "opacity-20"
+                    }`}
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    markerEnd={
+                      arrow.conflict
+                        ? "url(#cc-prereq-arrowhead-conflict)"
+                        : "url(#cc-prereq-arrowhead)"
+                    }
+                  />
+                );
+              })}
             </svg>
           )}
 
@@ -501,6 +516,13 @@ export function EditorScreen({ project }: EditorScreenProps) {
                               course={course}
                               conflict={conflictsById.has(course.id)}
                               conflictTitle={conflictsById.get(course.id)?.join("\n")}
+                              onSelect={(id) =>
+                                setFocusedCourseId((current) =>
+                                  current === id ? null : id,
+                                )
+                              }
+                              focused={focusedCourseId === course.id}
+                              dimmed={chainIds != null && !chainIds.has(course.id)}
                             />
                           )}
                         </div>

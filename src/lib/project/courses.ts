@@ -106,6 +106,37 @@ export function courseHasConflict(
   return courseConflicts(project, course).length > 0;
 }
 
+/**
+ * Every course reachable from `courseId` by following prereq links in either
+ * direction — its prereqs (and theirs), and the courses that require it (and
+ * theirs), to any depth. Includes `courseId` itself.
+ */
+export function prereqChain(
+  project: CourseChainProject,
+  courseId: number,
+): Set<number> {
+  const byId = new Map(project.courses.map((c) => [c.id, c]));
+  const dependents = new Map<number, number[]>();
+  for (const course of project.courses) {
+    for (const prereqId of course.prereqs) {
+      const list = dependents.get(prereqId);
+      if (list) list.push(course.id);
+      else dependents.set(prereqId, [course.id]);
+    }
+  }
+
+  const chain = new Set<number>();
+  const stack = [courseId];
+  while (stack.length > 0) {
+    const id = stack.pop() as number;
+    if (chain.has(id)) continue;
+    chain.add(id);
+    for (const prereqId of byId.get(id)?.prereqs ?? []) stack.push(prereqId);
+    for (const dependentId of dependents.get(id) ?? []) stack.push(dependentId);
+  }
+  return chain;
+}
+
 interface PlacementBounds {
   prereqs: { term: number; concurrent: boolean }[];
   dependents: { term: number; concurrent: boolean }[];

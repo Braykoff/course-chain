@@ -6,6 +6,9 @@ import type { CourseChainProject } from "@/lib/project";
 export interface PrereqArrow {
   key: string;
   d: string;
+  /** The prereq course (arrow tail) and the course that needs it (arrow head). */
+  fromId: number;
+  toId: number;
   /** The dependent course is scheduled inconsistently with this prereq link. */
   conflict: boolean;
 }
@@ -151,6 +154,8 @@ export function usePrereqArrows(
           arrows.push({
             key: `${prereqId}->${course.id}`,
             d: buildPath(source, target),
+            fromId: prereqId,
+            toId: course.id,
             conflict,
           });
         });

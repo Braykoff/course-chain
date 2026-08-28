@@ -12,6 +12,7 @@ import {
   moveCourseToTerm,
   nearestTermIndex,
   type NewCourseInput,
+  prereqChain,
   updateCourse,
   validateProject,
 } from "@/lib/project";
@@ -405,5 +406,25 @@ describe("deleteCourse", () => {
     expect(named(after, "C")).toBeDefined();
     expect(named(after, "C").prereqs).toEqual([]);
     expect(after.courses.some((c) => c.name === "MATH 55")).toBe(false);
+  });
+});
+
+describe("prereqChain", () => {
+  it("collects prereqs and dependents transitively in both directions", () => {
+    let p = baseProject(6);
+    p = addCourse(p, input({ name: "Q" }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "P", prereqs: [{ name: "Q", concurrent: false }] }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "C", prereqs: [{ name: "P", concurrent: false }] }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "D", prereqs: [{ name: "C", concurrent: false }] }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "Unrelated" }), INSIDE_TERM_2).project;
+
+    const chain = prereqChain(p, named(p, "C").id);
+    const names = new Set([...chain].map((id) => p.courses.find((c) => c.id === id)!.name));
+    expect(names).toEqual(new Set(["Q", "P", "C", "D"]));
+  });
+
+  it("returns just the course itself when it has no links", () => {
+    const p = addCourse(baseProject(6), input({ name: "Lonely" }), INSIDE_TERM_2).project;
+    expect([...prereqChain(p, named(p, "Lonely").id)]).toEqual([named(p, "Lonely").id]);
   });
 });
