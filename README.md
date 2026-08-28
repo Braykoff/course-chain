@@ -47,6 +47,9 @@ top-level message written to and read from files and IndexedDB.
   and stamps `lastModified`. The top bar's download button exports the project
   as a **`.chain`** file (raw protobuf); "Open File" imports one, prompting when
   a project with the same id is already stored so you can pick the newer copy.
+- The top bar's PDF button rasterizes the full-size calendar board (columns +
+  prereq arrows) with `html-to-image` and wraps it in a one-page, pixel-exact
+  PDF via `jspdf` (both dynamically imported). No print dialog.
 - `npm run tests` (or `npm test`) runs the Vitest suite in `tests/`:
   serialize/deserialize round trips, every validation failure path, the
   onboarding draft/template logic, course operations, and storage.

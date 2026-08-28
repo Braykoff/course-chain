@@ -385,7 +385,11 @@ export function EditorScreen({ project }: EditorScreenProps) {
 
       {/* Semester columns — one board that scrolls as a whole, both axes */}
       <div ref={scrollRef} className="min-w-0 flex-1 overflow-auto">
-        <div ref={boardRef} className="relative flex min-h-full items-stretch">
+        <div
+          ref={boardRef}
+          id="cc-calendar-board"
+          className="relative flex min-h-full items-stretch"
+        >
           {/* Prereq connectors — painted under the columns so cards cover them */}
           {arrows.arrows.length > 0 && (
             <svg
