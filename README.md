@@ -42,9 +42,15 @@ top-level message written to and read from files and IndexedDB.
 - `src/lib/onboarding/` backs the "New course-chain Project" dialog: the form
   draft model, `validateDraft` (the same rules, phrased for the form),
   `draftToProject`, and `buildTemplateTerms` for the "Template" dropdown.
+- `src/lib/storage/` mirrors every project to `localStorage`, keyed by its
+  UUID (`projectId`), as base64 protobuf. The editor autosaves on every change
+  and stamps `lastModified`. The top bar's download button exports the project
+  as a **`.chain`** file (raw protobuf); "Open File" imports one, prompting when
+  a project with the same id is already stored so you can pick the newer copy.
 - `npm run tests` (or `npm test`) runs the Vitest suite in `tests/`:
-  serialize/deserialize round trips, every validation failure path, and the
-  onboarding draft/template logic. `npm run test:watch` for watch mode.
+  serialize/deserialize round trips, every validation failure path, the
+  onboarding draft/template logic, course operations, and storage.
+  `npm run test:watch` for watch mode.
 
 ## Learn More
 

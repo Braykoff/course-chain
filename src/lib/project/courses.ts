@@ -33,6 +33,11 @@ export function todayEpochDay(): number {
   return Math.floor(Date.now() / MS_PER_DAY);
 }
 
+/** Whole seconds since the Unix epoch (for `CourseChainProject.lastModified`). */
+export function nowEpochSeconds(): number {
+  return Math.floor(Date.now() / 1000);
+}
+
 /** Case-insensitive, trimmed name lookup. */
 export function findCourseByName(
   project: CourseChainProject,

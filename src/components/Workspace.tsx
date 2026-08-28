@@ -9,7 +9,7 @@ import { useWorkspace } from "./WorkspaceContext";
  * editor, based on whether a project is open in the workspace context.
  */
 export function Workspace() {
-  const { project, setProject } = useWorkspace();
+  const { project, openProject } = useWorkspace();
 
   if (project) {
     return <EditorScreen project={project} />;
@@ -18,7 +18,7 @@ export function Workspace() {
   return (
     // Launcher — centered project-entry options
     <div className="flex flex-1 items-center justify-center overflow-y-auto px-6 py-16">
-      <HomeOptions onOpenProject={setProject} />
+      <HomeOptions onOpenProject={openProject} />
     </div>
   );
 }

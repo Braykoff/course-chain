@@ -23,6 +23,8 @@ import {
 function makeValidProject(): CourseChainProject {
   return create(CourseChainProjectSchema, {
     versionNumber: CURRENT_SCHEMA_VERSION,
+    projectId: "11111111-2222-3333-4444-555555555555",
+    lastModified: 1_700_000_000,
     name: "Four-Year Plan",
     tracks: [
       { id: 10, name: "Theory" },
@@ -94,6 +96,8 @@ describe("serialize / deserialize round trip", () => {
 
     // --- CourseChainProject ---
     expect(restored.versionNumber).toBe(CURRENT_SCHEMA_VERSION);
+    expect(restored.projectId).toBe("11111111-2222-3333-4444-555555555555");
+    expect(restored.lastModified).toBe(1_700_000_000);
     expect(restored.name).toBe("Four-Year Plan");
     expect(restored.terms).toHaveLength(3);
     expect(restored.courses).toHaveLength(4);

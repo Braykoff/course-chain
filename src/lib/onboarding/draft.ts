@@ -8,6 +8,7 @@ import {
   MAX_TERMS,
   MAX_TRACK_NAME_LENGTH,
   MAX_TRACKS,
+  nowEpochSeconds,
 } from "@/lib/project";
 
 // The in-progress state of the "New course-chain Project" form, before it is
@@ -160,6 +161,7 @@ export function draftToProject(draft: NewProjectDraft): CourseChainProject {
   return create(CourseChainProjectSchema, {
     versionNumber: CURRENT_SCHEMA_VERSION,
     projectId: crypto.randomUUID(),
+    lastModified: nowEpochSeconds(),
     name: draft.title.trim(),
     terms: draft.terms.map((term) => ({
       name: term.name.trim(),

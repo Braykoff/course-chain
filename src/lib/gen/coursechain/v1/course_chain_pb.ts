@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file coursechain/v1/course_chain.proto.
  */
 export const file_coursechain_v1_course_chain: GenFile = /*@__PURE__*/
-  fileDesc("CiFjb3Vyc2VjaGFpbi92MS9jb3Vyc2VfY2hhaW4ucHJvdG8SDmNvdXJzZWNoYWluLnYxIkYKBFRlcm0SDQoFc3RhcnQYASABKA0SCwoDZW5kGAIgASgNEgwKBG5hbWUYAyABKAkSFAoMYXV0b3BvcHVsYXRlGAQgASgIIiEKBVRyYWNrEgoKAmlkGAEgASgNEgwKBG5hbWUYAiABKAkitwEKBkNvdXJzZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEhIKCnVuaXRfY291bnQYAyABKA0SDwoHcHJlcmVxcxgEIAMoDRITCgt0ZXJtX251bWJlchgFIAEoDRIZChFjb25jdXJyZW50X3ByZXJlcRgGIAMoCBIQCghpbXBsaWNpdBgHIAEoCBINCgVub3RlcxgIIAEoCRIOCgZ0cmFja3MYCSADKA0SDQoFc2xvdHMYCiABKA0iwwEKEkNvdXJzZUNoYWluUHJvamVjdBIWCg52ZXJzaW9uX251bWJlchgBIAEoDRInCgdjb3Vyc2VzGAIgAygLMhYuY291cnNlY2hhaW4udjEuQ291cnNlEiMKBXRlcm1zGAMgAygLMhQuY291cnNlY2hhaW4udjEuVGVybRIMCgRuYW1lGAQgASgJEiUKBnRyYWNrcxgFIAMoCzIVLmNvdXJzZWNoYWluLnYxLlRyYWNrEhIKCnByb2plY3RfaWQYBiABKAliBnByb3RvMw");
+  fileDesc("CiFjb3Vyc2VjaGFpbi92MS9jb3Vyc2VfY2hhaW4ucHJvdG8SDmNvdXJzZWNoYWluLnYxIkYKBFRlcm0SDQoFc3RhcnQYASABKA0SCwoDZW5kGAIgASgNEgwKBG5hbWUYAyABKAkSFAoMYXV0b3BvcHVsYXRlGAQgASgIIiEKBVRyYWNrEgoKAmlkGAEgASgNEgwKBG5hbWUYAiABKAkitwEKBkNvdXJzZRIKCgJpZBgBIAEoDRIMCgRuYW1lGAIgASgJEhIKCnVuaXRfY291bnQYAyABKA0SDwoHcHJlcmVxcxgEIAMoDRITCgt0ZXJtX251bWJlchgFIAEoDRIZChFjb25jdXJyZW50X3ByZXJlcRgGIAMoCBIQCghpbXBsaWNpdBgHIAEoCBINCgVub3RlcxgIIAEoCRIOCgZ0cmFja3MYCSADKA0SDQoFc2xvdHMYCiABKA0i2gEKEkNvdXJzZUNoYWluUHJvamVjdBIWCg52ZXJzaW9uX251bWJlchgBIAEoDRInCgdjb3Vyc2VzGAIgAygLMhYuY291cnNlY2hhaW4udjEuQ291cnNlEiMKBXRlcm1zGAMgAygLMhQuY291cnNlY2hhaW4udjEuVGVybRIMCgRuYW1lGAQgASgJEiUKBnRyYWNrcxgFIAMoCzIVLmNvdXJzZWNoYWluLnYxLlRyYWNrEhIKCnByb2plY3RfaWQYBiABKAkSFQoNbGFzdF9tb2RpZmllZBgHIAEoDWIGcHJvdG8z");
 
 /**
  * A planning term, e.g. "Fall 2026". Terms are defined once when a project is
@@ -377,6 +377,14 @@ export type CourseChainProject = Message<"coursechain.v1.CourseChainProject"> & 
    * @generated from field: string project_id = 6;
    */
   projectId: string;
+
+  /**
+   * When the project was last changed, as whole seconds since the Unix epoch
+   * (UTC). Used to compare a saved copy against a file on disk.
+   *
+   * @generated from field: uint32 last_modified = 7;
+   */
+  lastModified: number;
 };
 
 /**
@@ -431,6 +439,14 @@ export type CourseChainProjectJson = {
    * @generated from field: string project_id = 6;
    */
   projectId?: string;
+
+  /**
+   * When the project was last changed, as whole seconds since the Unix epoch
+   * (UTC). Used to compare a saved copy against a file on disk.
+   *
+   * @generated from field: uint32 last_modified = 7;
+   */
+  lastModified?: number;
 };
 
 /**

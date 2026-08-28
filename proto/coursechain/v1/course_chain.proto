@@ -96,4 +96,8 @@ message CourseChainProject {
   // Stable identifier for this project. Assigned a random UUID when the project
   // is created and never changed afterward.
   string project_id = 6;
+
+  // When the project was last changed, as whole seconds since the Unix epoch
+  // (UTC). Used to compare a saved copy against a file on disk.
+  uint32 last_modified = 7;
 }

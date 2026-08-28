@@ -59,7 +59,7 @@ interface EditorScreenProps {
 }
 
 export function EditorScreen({ project }: EditorScreenProps) {
-  const { setProject } = useWorkspace();
+  const { updateProject } = useWorkspace();
 
   // Captured once when the editor opens; used to grey out past terms.
   const [todayDay] = useState(() => Math.floor(Date.now() / MS_PER_DAY));
@@ -144,9 +144,15 @@ export function EditorScreen({ project }: EditorScreenProps) {
     document.addEventListener("pointerup", onUp);
   };
 
+  // Autosave only when something actually changed — a rejected or no-op
+  // operation returns the same project and must not bump `lastModified`.
+  const commit = (next: CourseChainProject) => {
+    if (next !== project) updateProject(next);
+  };
+
   const handleAddCourse = (input: NewCourseInput) => {
     const result = addCourse(project, input, todayDay);
-    setProject(result.project);
+    commit(result.project);
     setWarnings(result.warnings);
   };
 
@@ -167,7 +173,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
 
   const handleSaveCourse = (id: number, input: NewCourseInput, promote: boolean) => {
     const result = updateCourse(project, id, input, { promote }, todayDay);
-    setProject(result.project);
+    commit(result.project);
     setWarnings(result.warnings);
     setExpandedCourseId(null);
   };
@@ -178,7 +184,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
         `prereq lists.`,
     );
     if (!ok) return;
-    setProject(deleteCourse(project, course.id));
+    commit(deleteCourse(project, course.id));
     setExpandedCourseId(null);
   };
 
@@ -256,7 +262,7 @@ export function EditorScreen({ project }: EditorScreenProps) {
     setDropTarget(null);
     const id = Number(event.dataTransfer.getData("text/plain"));
     if (Number.isInteger(id)) {
-      setProject(moveCourseToSlot(project, id, term, slot));
+      commit(moveCourseToSlot(project, id, term, slot));
     }
   };
 
