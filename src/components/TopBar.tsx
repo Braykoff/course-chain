@@ -6,11 +6,13 @@ import {
   faCircleQuestion,
   faDownload,
   faFilePdf,
+  faGear,
   faHouse,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { serializeProject } from "@/lib/project";
 import { version } from "../../package.json";
+import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import { useWorkspace } from "./WorkspaceContext";
 
 /** Element id of the calendar board, set in EditorScreen. */
@@ -30,8 +32,9 @@ function safeStem(name: string): string {
 }
 
 export function TopBar() {
-  const { project, closeProject } = useWorkspace();
+  const { project, closeProject, updateProject } = useWorkspace();
   const [savingPdf, setSavingPdf] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // With no project open we're already on the launcher, so the project actions
   // have nothing to do.
   const onLauncher = project === null;
@@ -199,6 +202,18 @@ export function TopBar() {
             />
           </button>
 
+          {/* Project settings */}
+          <button
+            type="button"
+            aria-label="Project settings"
+            title="Project settings"
+            disabled={onLauncher}
+            onClick={() => setSettingsOpen(true)}
+            className={iconButton}
+          >
+            <FontAwesomeIcon icon={faGear} className="text-base" />
+          </button>
+
           {/* Help — no-op for now */}
           <button
             type="button"
@@ -210,6 +225,15 @@ export function TopBar() {
           </button>
         </div>
       </div>
+
+      {/* Project settings dialog */}
+      {settingsOpen && project && (
+        <ProjectSettingsDialog
+          project={project}
+          onClose={() => setSettingsOpen(false)}
+          onSave={updateProject}
+        />
+      )}
     </header>
   );
 }

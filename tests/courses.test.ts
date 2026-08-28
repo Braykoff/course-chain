@@ -2,6 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import { describe, expect, it } from "vitest";
 import {
   addCourse,
+  applyProjectSettings,
   CourseChainProjectSchema,
   courseConflicts,
   courseHasConflict,
@@ -585,5 +586,86 @@ describe("autopopulate-aware placement", () => {
     const p = projectWith([false, false, false, false, false, false]);
     const { project } = addCourse(p, input({ name: "A" }), INSIDE_TERM_2);
     expect(named(project, "A").termNumber).toBe(2); // nearest, unchanged
+  });
+});
+
+describe("applyProjectSettings", () => {
+  const settingsProject = () => {
+    let p = create(CourseChainProjectSchema, {
+      versionNumber: CURRENT_SCHEMA_VERSION,
+      name: "Plan",
+      projectId: "abc-123",
+      terms: Array.from({ length: 4 }, (_, i) => ({
+        name: `Term ${i}`,
+        start: 20_000 + i * 100,
+        end: 20_000 + i * 100 + 90,
+        autopopulate: false,
+      })),
+      courses: [],
+      tracks: [
+        { id: 0, name: "Bio" },
+        { id: 1, name: "Chem" },
+      ],
+    });
+    p = addCourse(p, input({ name: "A", trackIds: [0, 1] }), INSIDE_TERM_2).project;
+    p = addCourse(p, input({ name: "B", trackIds: [1] }), INSIDE_TERM_2).project;
+    return p;
+  };
+
+  it("renames the project (trimmed)", () => {
+    const next = applyProjectSettings(settingsProject(), {
+      name: "  New name  ",
+      tracks: [
+        { id: 0, name: "Bio" },
+        { id: 1, name: "Chem" },
+      ],
+    });
+    expect(next.name).toBe("New name");
+  });
+
+  it("renames a track in place, keeping course associations", () => {
+    const next = applyProjectSettings(settingsProject(), {
+      name: "Plan",
+      tracks: [
+        { id: 0, name: "Biology" },
+        { id: 1, name: "Chem" },
+      ],
+    });
+    expect(next.tracks.find((t) => t.id === 0)?.name).toBe("Biology");
+    expect(named(next, "A").tracks).toEqual([0, 1]);
+  });
+
+  it("adds a track with the next free id", () => {
+    const next = applyProjectSettings(settingsProject(), {
+      name: "Plan",
+      tracks: [
+        { id: 0, name: "Bio" },
+        { id: 1, name: "Chem" },
+        { id: null, name: "Physics" },
+      ],
+    });
+    expect(next.tracks.map((t) => t.id)).toEqual([0, 1, 2]);
+    expect(next.tracks[2].name).toBe("Physics");
+  });
+
+  it("removes a deleted track from every course", () => {
+    const next = applyProjectSettings(settingsProject(), {
+      name: "Plan",
+      tracks: [{ id: 0, name: "Bio" }],
+    });
+    expect(next.tracks.map((t) => t.id)).toEqual([0]);
+    expect(named(next, "A").tracks).toEqual([0]);
+    expect(named(next, "B").tracks).toEqual([]);
+  });
+
+  it("produces a project that still validates", () => {
+    const next = applyProjectSettings(settingsProject(), {
+      name: "Plan",
+      tracks: [
+        { id: 1, name: "Chem" },
+        { id: null, name: "Physics" },
+      ],
+    });
+    expect(() => validateProject(next)).not.toThrow();
   });
 });

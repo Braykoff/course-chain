@@ -4,6 +4,7 @@ import {
   type CourseChainProject,
   CourseSchema,
   MAX_SLOT,
+  TrackSchema,
 } from "./schema";
 
 const MS_PER_DAY = 86_400_000;
@@ -603,6 +604,66 @@ export function deleteCourse(
     });
   courses = gcStrandedImplicits(courses);
   return { ...project, courses };
+}
+
+/** One row of the settings dialog's track list. */
+export interface TrackSettingInput {
+  /** The id of an existing track, or `null` for a track being added. */
+  id: number | null;
+  name: string;
+}
+
+/** The editable fields of the project settings dialog. */
+export interface ProjectSettingsInput {
+  name: string;
+  tracks: TrackSettingInput[];
+}
+
+/**
+ * Apply the settings dialog's changes: rename the project and reconcile its
+ * track list. A track kept by id keeps its course associations (even if
+ * renamed); a track whose id is no longer in the list is removed from every
+ * course that referenced it; a row with `id: null` is added with the next free
+ * id. Names are trimmed.
+ *
+ * The result still passes through {@link validateProject} on save, so the
+ * dialog is expected to reject blank/duplicate/over-long names first.
+ */
+export function applyProjectSettings(
+  project: CourseChainProject,
+  input: ProjectSettingsInput,
+): CourseChainProject {
+  const keptIds = new Set(
+    input.tracks
+      .map((track) => track.id)
+      .filter((id): id is number => id !== null),
+  );
+
+  let nextId =
+    project.tracks.reduce((max, track) => Math.max(max, track.id), -1) + 1;
+  const tracks = input.tracks.map((track) =>
+    create(TrackSchema, {
+      id: track.id ?? nextId++,
+      name: track.name.trim(),
+    }),
+  );
+
+  const removedIds = project.tracks
+    .map((track) => track.id)
+    .filter((id) => !keptIds.has(id));
+  const courses =
+    removedIds.length === 0
+      ? project.courses
+      : project.courses.map((course) => {
+          const filtered = course.tracks.filter(
+            (id) => !removedIds.includes(id),
+          );
+          return filtered.length === course.tracks.length
+            ? course
+            : { ...course, tracks: filtered };
+        });
+
+  return { ...project, name: input.name.trim(), tracks, courses };
 }
 
 /**
