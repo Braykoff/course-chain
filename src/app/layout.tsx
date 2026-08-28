@@ -4,6 +4,7 @@ import "./globals.css";
 import "@/lib/fontawesome";
 import { TopBar } from "@/components/TopBar";
 import { WorkspaceProvider } from "@/components/WorkspaceContext";
+import { SmallScreenGate } from "@/components/SmallScreenGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {/* Active page */}
           <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         </WorkspaceProvider>
+
+        {/* Covers the app on screens too small to use it */}
+        <SmallScreenGate />
       </body>
     </html>
   );

@@ -84,8 +84,8 @@ export function HomeOptions({ onOpenProject }: HomeOptionsProps) {
 
   return (
     <>
-      {/* Option row (stacks on mobile) */}
-      <div className="grid w-full max-w-4xl gap-6 sm:grid-cols-3">
+      {/* Option row */}
+      <div className="grid w-full max-w-4xl grid-cols-3 gap-6">
         {options.map((option) => (
           <button
             key={option.title}
