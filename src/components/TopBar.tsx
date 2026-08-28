@@ -10,6 +10,7 @@ import {
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { serializeProject } from "@/lib/project";
+import { version } from "../../package.json";
 import { useWorkspace } from "./WorkspaceContext";
 
 /** Element id of the calendar board, set in EditorScreen. */
@@ -162,8 +163,11 @@ export function TopBar() {
         </button>
 
         {/* Site name */}
-        <span className="justify-self-center select-none text-base font-semibold tracking-tight text-royal-700">
-          course-chain
+        <span className="flex items-baseline gap-1.5 justify-self-center select-none">
+          <span className="text-base font-semibold tracking-tight text-royal-700">
+            course-chain
+          </span>
+          <span className="text-xs font-medium text-gray-400">v{version}</span>
         </span>
 
         {/* Project actions */}
