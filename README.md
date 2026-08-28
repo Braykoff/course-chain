@@ -26,11 +26,12 @@ Course-chain projects are stored as [Protobuf](https://protobuf.dev). The schema
 lives in `proto/coursechain/v1/course_chain.proto`; `CourseChainProject` is the
 top-level message written to and read from files and IndexedDB.
 
-- `npm run gen:proto` regenerates the TypeScript bindings into `src/lib/gen/`
-  (via [`buf`](https://buf.build) + `protoc-gen-es`). The generated output is
-  committed, so `npm run build` and CI don't need `buf`. **Re-run it after
-  editing any `.proto`** and commit the result.
-- `npm run lint:proto` runs `buf lint`.
+- `buf generate` produces the TypeScript bindings in `src/lib/gen/` (via
+  [`buf`](https://buf.build) + `protoc-gen-es`). That output is **git-ignored** —
+  `npm run dev`, `npm run build`, and `npm test` all run `buf generate` first, so
+  a `.proto` edit takes effect on the next run with nothing to commit. Run
+  `buf generate` by hand if your editor needs the types before then.
+- `npm run lint` runs `eslint` and then `buf lint`.
 - `src/lib/project/` is the library the app imports (`@/lib/project`): the
   generated types, `serializeProject` / `deserializeProject`, and
   `validateProject`. Both serialize and deserialize run `validateProject`, which
@@ -50,10 +51,9 @@ top-level message written to and read from files and IndexedDB.
 - The top bar's PDF button rasterizes the full-size calendar board (columns +
   prereq arrows) with `html-to-image` and wraps it in a one-page, pixel-exact
   PDF via `jspdf` (both dynamically imported). No print dialog.
-- `npm run tests` (or `npm test`) runs the Vitest suite in `tests/`:
-  serialize/deserialize round trips, every validation failure path, the
-  onboarding draft/template logic, course operations, and storage.
-  `npm run test:watch` for watch mode.
+- `npm test` runs the Vitest suite in `tests/`: serialize/deserialize round
+  trips, every validation failure path, the onboarding draft/template logic,
+  course operations, and storage.
 
 ## Learn More
 

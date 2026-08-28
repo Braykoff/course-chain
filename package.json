@@ -1,17 +1,18 @@
 {
   "name": "course-chain",
+  "author": {
+    "name": "Brendan Raykoff",
+    "email": "braykoff2007@gmail.com",
+    "url": "http://raykoff.org"
+  },
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "buf generate && next dev",
+    "build": "buf generate && next build",
     "start": "next start",
-    "lint": "eslint",
-    "gen:proto": "buf generate",
-    "lint:proto": "buf lint",
-    "test": "vitest run",
-    "tests": "vitest run",
-    "test:watch": "vitest"
+    "lint": "eslint && buf lint",
+    "test": "buf generate && vitest run"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.14.0",
@@ -39,6 +40,9 @@
     "vitest": "^4.1.11"
   },
   "allowScripts": {
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "@bufbuild/buf@1.72.0": true,
+    "core-js@3.50.0": true,
+    "fsevents@2.3.3": true
   }
 }

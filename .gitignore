@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated protobuf bindings — recreated by `buf generate` (runs before dev/build/test)
+/src/lib/gen/
