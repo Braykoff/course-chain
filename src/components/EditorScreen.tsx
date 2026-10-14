@@ -483,10 +483,10 @@ export function EditorScreen({ project }: EditorScreenProps) {
             const units = termCourses.reduce((sum, course) => sum + course.unitCount, 0);
             const courseBySlot = new Map(termCourses.map((course) => [course.slots, course]));
             const maxSlot = termCourses.reduce((max, course) => Math.max(max, course.slots), -1);
-            // At rest, render exactly the slots in use so the column never
-            // scrolls past its courses. While dragging, expose every slot so a
-            // course can be dropped anywhere (the column scrolls then, as needed).
-            const rowCount = dragging ? MAX_SLOT + 1 : maxSlot + 1;
+            // Every column always renders all MAX_SLOT + 1 slots, so the board
+            // leaves room to drag a course far down and the column tints run
+            // the full height of the board.
+            const isEmpty = termCourses.length === 0;
 
             // Backgrounds stay translucent so the connectors show through the
             // open space between cards.
@@ -527,63 +527,63 @@ export function EditorScreen({ project }: EditorScreenProps) {
                 <div
                   onDragOver={(event) => event.preventDefault()}
                   onDrop={(event) => handleDropSlot(index, maxSlot + 1, event)}
-                  className={`flex flex-1 flex-col p-3 ${
-                    rowCount === 0 ? "items-center justify-center" : ""
-                  }`}
+                  className="flex flex-1 flex-col p-3"
                 >
-                  {rowCount === 0 ? (
-                    <span className="select-none text-xs text-gray-300">
-                      No courses yet
-                    </span>
-                  ) : (
-                    Array.from({ length: rowCount }, (_, slot) => {
-                      const course = courseBySlot.get(slot);
-                      const active =
-                        dropTarget?.term === index && dropTarget.slot === slot;
-                      return (
-                        <div
-                          key={slot}
-                          onDragOver={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            setDropTarget({ term: index, slot });
-                          }}
-                          onDragLeave={(event) => {
-                            if (
-                              !event.currentTarget.contains(
-                                event.relatedTarget as Node | null,
-                              )
-                            ) {
-                              setDropTarget((current) =>
-                                current?.term === index && current.slot === slot
-                                  ? null
-                                  : current,
-                              );
-                            }
-                          }}
-                          onDrop={(event) => handleDropSlot(index, slot, event)}
-                          className={`mb-2 min-h-[52px] rounded-md last:mb-0 ${
-                            active && !course
-                              ? "border-2 border-dashed border-royal-300 bg-royal-50/60"
-                              : active
-                                ? "ring-2 ring-royal-300"
-                                : ""
-                          }`}
-                        >
-                          {course && (
-                            <CourseCard
-                              course={course}
-                              conflict={conflictsById.has(course.id)}
-                              conflictTitle={conflictsById.get(course.id)?.join("\n")}
-                              onSelect={handleSelectCourse}
-                              focused={focusedCourseId === course.id}
-                              dimmed={highlightIds != null && !highlightIds.has(course.id)}
-                            />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
+                  {Array.from({ length: MAX_SLOT + 1 }, (_, slot) => {
+                    const course = courseBySlot.get(slot);
+                    const active =
+                      dropTarget?.term === index && dropTarget.slot === slot;
+                    return (
+                      <div
+                        key={slot}
+                        onDragOver={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setDropTarget({ term: index, slot });
+                        }}
+                        onDragLeave={(event) => {
+                          if (
+                            !event.currentTarget.contains(
+                              event.relatedTarget as Node | null,
+                            )
+                          ) {
+                            setDropTarget((current) =>
+                              current?.term === index && current.slot === slot
+                                ? null
+                                : current,
+                            );
+                          }
+                        }}
+                        onDrop={(event) => handleDropSlot(index, slot, event)}
+                        className={`mb-2 min-h-[52px] rounded-md last:mb-0 ${
+                          active && !course
+                            ? "border-2 border-dashed border-royal-300 bg-royal-50/60"
+                            : active
+                              ? "ring-2 ring-royal-300"
+                              : ""
+                        }`}
+                      >
+                        {course && (
+                          <CourseCard
+                            course={course}
+                            conflict={conflictsById.has(course.id)}
+                            conflictTitle={conflictsById.get(course.id)?.join("\n")}
+                            onSelect={handleSelectCourse}
+                            focused={focusedCourseId === course.id}
+                            dimmed={highlightIds != null && !highlightIds.has(course.id)}
+                          />
+                        )}
+                        {/* Empty-column hint — sits in the first slot */}
+                        {isEmpty && slot === 0 && !dragging && (
+                          <div className="flex min-h-[52px] items-center justify-center">
+                            <span className="select-none text-xs text-gray-300">
+                              No courses yet
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             );
