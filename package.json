@@ -5,7 +5,7 @@
     "email": "braykoff2007@gmail.com",
     "url": "http://raykoff.org"
   },
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": false,
   "scripts": {
     "dev": "buf generate && next dev",

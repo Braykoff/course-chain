@@ -15,8 +15,6 @@ export interface PrereqArrow {
 
 interface ArrowLayout {
   arrows: PrereqArrow[];
-  width: number;
-  height: number;
 }
 
 interface Anchor {
@@ -25,7 +23,7 @@ interface Anchor {
   midY: number;
 }
 
-const EMPTY: ArrowLayout = { arrows: [], width: 0, height: 0 };
+const EMPTY: ArrowLayout = { arrows: [] };
 const ALIGNED_TOLERANCE = 4;
 const CRAMPED_GAP = 80;
 const CORNER_RADIUS = 10;
@@ -162,7 +160,7 @@ export function usePrereqArrows(
       }
 
       // Post-layout measurement: this setState runs before paint, no flicker.
-      setLayout({ arrows, width: node.scrollWidth, height: node.scrollHeight });
+      setLayout({ arrows });
     };
 
     measure();

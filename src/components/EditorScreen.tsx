@@ -420,11 +420,11 @@ export function EditorScreen({ project }: EditorScreenProps) {
         >
           {/* Prereq connectors — painted under the columns so cards cover them */}
           {arrows.arrows.length > 0 && (
+            // Sized to the board via CSS, not its scrollHeight: measuring would
+            // let the SVG prop the board open after it shrinks (e.g. post-drag)
             <svg
-              width={arrows.width}
-              height={arrows.height}
               aria-hidden="true"
-              className="pointer-events-none absolute left-0 top-0"
+              className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
             >
               <defs>
                 <marker
