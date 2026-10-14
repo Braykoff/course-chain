@@ -22,8 +22,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} h-full antialiased`}
     >
-      {/* Lock the app to the viewport; inner regions do their own scrolling. */}
-      <body className="flex h-full flex-col overflow-hidden bg-white text-gray-900">
+      {/* Lock the app to the viewport; inner regions do their own scrolling.
+          suppressHydrationWarning: extensions like Grammarly stamp attributes
+          onto <body> before hydration; this ignores only <body>'s own attrs. */}
+      <body
+        suppressHydrationWarning
+        className="flex h-full flex-col overflow-hidden bg-white text-gray-900"
+      >
         <WorkspaceProvider>
           {/* Global top bar */}
           <TopBar />

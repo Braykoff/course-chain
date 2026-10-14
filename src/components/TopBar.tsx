@@ -5,12 +5,13 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCircleQuestion,
   faDownload,
+  faFileCsv,
   faFilePdf,
   faGear,
   faHouse,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
-import { serializeProject } from "@/lib/project";
+import { projectToCsv, serializeProject } from "@/lib/project";
 import { version } from "../../package.json";
 import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import { useWorkspace } from "./WorkspaceContext";
@@ -29,6 +30,16 @@ function safeStem(name: string): string {
   return (
     name.trim().replace(/[^\w.-]+/g, "_").replace(/^_+|_+$/g, "") || "project"
   );
+}
+
+/** Hands a blob to the browser as a file download. */
+function saveBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 export function TopBar() {
@@ -52,13 +63,18 @@ export function TopBar() {
       window.alert("This project can't be exported right now.");
       return;
     }
-    const blob = new Blob([bytes], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${safeStem(project.name)}.chain`;
-    link.click();
-    URL.revokeObjectURL(url);
+    saveBlob(
+      new Blob([bytes], { type: "application/octet-stream" }),
+      `${safeStem(project.name)}.chain`,
+    );
+  };
+
+  const handleDownloadCsv = () => {
+    if (!project) return;
+    saveBlob(
+      new Blob([projectToCsv(project)], { type: "text/csv;charset=utf-8" }),
+      `${safeStem(project.name)}.csv`,
+    );
   };
 
   const handleSavePdf = async () => {
@@ -185,6 +201,18 @@ export function TopBar() {
             className={iconButton}
           >
             <FontAwesomeIcon icon={faDownload} className="text-base" />
+          </button>
+
+          {/* Export courses, semesters, and units as a CSV */}
+          <button
+            type="button"
+            aria-label="Export as CSV"
+            title="Export as CSV"
+            disabled={onLauncher}
+            onClick={handleDownloadCsv}
+            className={iconButton}
+          >
+            <FontAwesomeIcon icon={faFileCsv} className="text-base" />
           </button>
 
           {/* Save the full calendar as a PDF */}
