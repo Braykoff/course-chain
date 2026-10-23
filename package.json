@@ -23,7 +23,7 @@
     "@fortawesome/react-fontawesome": "^3.5.0",
     "html-to-image": "^1.11.13",
     "jspdf": "^4.2.1",
-    "next": "16.3.3",
+    "next": "16.4.2",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -36,7 +36,7 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.3.3",
+    "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.11",
@@ -49,5 +49,8 @@
     "fsevents@2.3.3": true,
     "esbuild@0.28.2": true,
     "workerd@1.20261019.1": true
+  },
+  "overrides": {
+    "fast-glob": "npm:tinyglobby@0.2.17"
   }
 }
