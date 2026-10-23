@@ -66,25 +66,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deployment
 
-The site is built as a fully static export and published to GitHub Pages at
-**https://raykoff.org/course-chain/**.
+The site is built as a fully static export and served by a Cloudflare Worker
+(static assets only, no Worker script) at **https://coursechain.raykoff.org/**.
 
-- `.github/workflows/deploy.yml` runs on every push to `main`: it installs
-  dependencies, runs `npm run build` (`output: "export"` writes `./out`), adds a
-  `.nojekyll` marker, and deploys the `out/` directory with `actions/deploy-pages`.
-- `next.config.ts` sets `basePath: "/course-chain"` so all routes and `_next`
-  assets resolve under the sub-path. Next rewrites `<Link>` hrefs and its own
-  asset URLs automatically; string references to files in `public/` (e.g.
-  `next/image` `src`) need the prefix applied by hand — re-export `basePath` as
-  `NEXT_PUBLIC_BASE_PATH` via the `env` config key when that comes up.
-- One-time repo setup: **Settings → Pages → Build and deployment → Source =
-  "GitHub Actions"**. The `raykoff.org` custom domain is configured on the user
-  Pages site, not this repo, so no `CNAME` file is needed here.
+- `next.config.ts` sets `output: "export"`, so `npm run build` writes `./out`.
+- `wrangler.jsonc` points the Worker's assets at `./out` and serves `404.html`
+  for unknown paths. The `coursechain.raykoff.org` custom domain is attached in
+  the Cloudflare dashboard (Worker → Settings → Domains & Routes).
+- `npm run deploy` builds and runs `wrangler deploy`. Run `npx wrangler login`
+  once first.
 
 To preview the production build locally:
 
 ```bash
-npm run build
-npx serve out -l 3000
-# then open http://localhost:3000/course-chain/
+npm run preview
+# then open http://localhost:8787/
 ```

@@ -3,7 +3,7 @@
   "author": {
     "name": "Brendan Raykoff",
     "email": "braykoff2007@gmail.com",
-    "url": "http://raykoff.org"
+    "url": "https://raykoff.org/"
   },
   "version": "1.0.1",
   "private": false,
@@ -11,6 +11,8 @@
     "dev": "buf generate && next dev",
     "build": "buf generate && next build",
     "start": "next start",
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy",
     "lint": "eslint && buf lint",
     "test": "buf generate && vitest run"
   },
@@ -37,12 +39,15 @@
     "eslint-config-next": "16.3.3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.152.0"
   },
   "allowScripts": {
     "unrs-resolver@1.12.2": true,
     "@bufbuild/buf@1.72.0": true,
     "core-js@3.50.0": true,
-    "fsevents@2.3.3": true
+    "fsevents@2.3.3": true,
+    "esbuild@0.28.2": true,
+    "workerd@1.20261019.1": true
   }
 }

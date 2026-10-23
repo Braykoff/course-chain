@@ -45,3 +45,6 @@ next-env.d.ts
 
 # Local planning notes
 INTEGRATIONS_GOALS.md
+
+# wrangler
+.wrangler/
